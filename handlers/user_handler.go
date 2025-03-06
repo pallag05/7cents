@@ -26,13 +26,13 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	err := h.userService.CreateUser(&user)
+	createdUser, err := h.userService.CreateUser(&user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, user)
+	c.JSON(http.StatusCreated, createdUser)
 }
 
 // GetUser returns user details
