@@ -13,6 +13,8 @@ type MemoryStore struct {
 	streakToUsers map[string]*models.StreakToUser
 	rewards       map[string]*models.Reward
 	userRewards   map[string]*models.UserReward
+	userFreezes   map[string]*models.UserFreeze
+	freezeConfig  *models.FreezeConfig
 	mu            sync.RWMutex
 }
 
@@ -27,6 +29,15 @@ func GetStore() *MemoryStore {
 			streakToUsers: make(map[string]*models.StreakToUser),
 			rewards:       make(map[string]*models.Reward),
 			userRewards:   make(map[string]*models.UserReward),
+			userFreezes:   make(map[string]*models.UserFreeze),
+			freezeConfig: &models.FreezeConfig{
+				ID:              "default",
+				MinStreakCount:  7, // Minimum 7 days streak required
+				MaxFreezes:      3, // Maximum 3 freezes allowed
+				MaxDurationDays: 7, // Maximum 7 days per freeze
+				CreatedAt:       time.Now(),
+				UpdatedAt:       time.Now(),
+			},
 		}
 		// Populate with dummy data
 		store.populateDummyData()
@@ -342,4 +353,42 @@ func (s *MemoryStore) GetRewardsByLevel(level models.RewardLevel) []*models.Rewa
 		}
 	}
 	return rewards
+}
+
+// Freeze operations
+func (s *MemoryStore) GetFreezeConfig() (*models.FreezeConfig, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.freezeConfig, true
+}
+
+func (s *MemoryStore) SaveUserFreeze(freeze *models.UserFreeze) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.userFreezes[freeze.ID] = freeze
+}
+
+func (s *MemoryStore) GetActiveUserFreeze(userID string) (*models.UserFreeze, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, freeze := range s.userFreezes {
+		if freeze.UserID == userID && time.Now().Before(freeze.EndTime) {
+			return freeze, true
+		}
+	}
+	return nil, false
+}
+
+func (s *MemoryStore) GetAllFrozenStreaks() []*models.StreakToUser {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var frozenStreaks []*models.StreakToUser
+	for _, streak := range s.streakToUsers {
+		if streak.IsFrozen {
+			frozenStreaks = append(frozenStreaks, streak)
+		}
+	}
+	return frozenStreaks
 }

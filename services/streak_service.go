@@ -243,34 +243,50 @@ func (s *StreakService) RecordActivity(userID string, activityType models.Streak
 		return err
 	}
 
-	// 2. Check if the activity is within the same day
+	// 2. Check if streak is frozen
+	if streakToUser.IsFrozen {
+		// If freeze has expired, unfreeze the streak
+		if time.Now().After(streakToUser.FreezeEndTime) {
+			freezeService := NewFreezeService()
+			if err := freezeService.UnfreezeStreak(userID); err != nil {
+				return err
+			}
+			streakToUser.IsFrozen = false
+			streakToUser.FreezeEndTime = time.Time{}
+		} else {
+			// Streak is still frozen, don't update it
+			return nil
+		}
+	}
+
+	// 3. Check if the activity is within the same day
 	if !isSameDay(streakToUser.LastStreakUpdated, time.Now()) {
-		// 3. Check if streak should be broken
+		// 4. Check if streak should be broken
 		if shouldBreakStreak(streakToUser.LastStreakUpdated) {
 			streakToUser.StreakCount = 0
 			streakToUser.CurrentStreakID = ""
 		}
 	}
 
-	// 4. Get or create streak based on user's level
+	// 5. Get or create streak based on user's level
 	streak, err := s.getOrCreateStreak(userID)
 	if err != nil {
 		return err
 	}
 
-	// 5. Create streak item
+	// 6. Create streak item
 	streakItem := &models.StreakItem{
 		ID:       generateID(),
 		Type:     activityType,
 		StreakID: streak.ID,
 	}
 
-	// 6. Update streak count and last updated time
+	// 7. Update streak count and last updated time
 	streakToUser.StreakCount++
 	streakToUser.CurrentStreakID = streak.ID
 	streakToUser.LastStreakUpdated = time.Now()
 
-	// 7. Update user's rating if needed
+	// 8. Update user's rating if needed
 	oldRating := streakToUser.CurrentRating
 	if shouldUpdateRating(streakToUser) {
 		streakToUser.CurrentRating = calculateNewRating(streakToUser)
@@ -278,7 +294,7 @@ func (s *StreakService) RecordActivity(userID string, activityType models.Streak
 			streakToUser.MaxRating = streakToUser.CurrentRating
 		}
 
-		// 8. Check for rewards if rating has changed
+		// 9. Check for rewards if rating has changed
 		if oldRating != streakToUser.CurrentRating {
 			rewardService := NewRewardService()
 			if err := rewardService.CheckAndAwardRewards(userID, streakToUser.CurrentRating); err != nil {
@@ -288,7 +304,7 @@ func (s *StreakService) RecordActivity(userID string, activityType models.Streak
 		}
 	}
 
-	// 9. Save all changes
+	// 10. Save all changes
 	return s.saveChanges(streakToUser, streakItem)
 }
 

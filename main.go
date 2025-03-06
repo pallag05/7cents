@@ -22,6 +22,7 @@ func main() {
 	streakService := services.NewStreakService()
 	rewardService := services.NewRewardService()
 	userService := services.NewUserService()
+	freezeService := services.NewFreezeService()
 
 	// Initialize handlers
 	streakHandler := handlers.NewStreakHandler(streakService)
@@ -29,6 +30,7 @@ func main() {
 	leaderboardHandler := handlers.NewLeaderboardHandler(streakService)
 	rewardHandler := handlers.NewRewardHandler(rewardService)
 	userHandler := handlers.NewUserHandler(userService)
+	freezeHandler := handlers.NewFreezeHandler(freezeService)
 
 	// API routes
 	api := router.Group("/api")
@@ -71,6 +73,14 @@ func main() {
 			rewards.GET("/reward/:reward_id", rewardHandler.GetRewardDetails)
 			rewards.GET("/available/:rating", rewardHandler.GetAvailableRewards)
 			rewards.GET("/progress/:user_id", rewardHandler.GetRewardProgress)
+		}
+
+		// Freeze routes
+		freezes := api.Group("/freezes")
+		{
+			freezes.POST("/streak", freezeHandler.FreezeStreak)
+			freezes.DELETE("/streak/:user_id", freezeHandler.UnfreezeStreak)
+			freezes.GET("/status/:user_id", freezeHandler.GetFreezeStatus)
 		}
 	}
 
