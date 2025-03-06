@@ -532,7 +532,7 @@ func (s *MemoryStore) AddActionToGroup(groupID string, action *models.Action) er
 func (s *MemoryStore) SearchGroupsByTag(tag string) []*models.Group {
 	var matchingGroups []*models.Group
 	for _, group := range s.groups {
-		if group != nil && group.Tag == tag {
+		if group != nil && group.Tag == tag && group.Private == false {
 			matchingGroups = append(matchingGroups, group)
 		}
 	}
