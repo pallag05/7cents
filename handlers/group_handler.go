@@ -111,6 +111,28 @@ func (h *GroupHandler) JoinGroup(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Successfully joined the group"})
 }
 
+// LeaveGroup handles the POST request for a user to leave a group
+func (h *GroupHandler) LeaveGroup(c *gin.Context) {
+	groupID := c.Param("id")
+	if groupID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "group ID is required"})
+		return
+	}
+
+	userID := c.Param("user_id")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user ID is required"})
+		return
+	}
+
+	if err := h.groupService.LeaveGroup(groupID, userID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Successfully left the group"})
+}
+
 func (h *GroupHandler) UpdateGroup(c *gin.Context) {
 	groupID := c.Param("id")
 	if groupID == "" {
