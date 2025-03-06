@@ -2,7 +2,7 @@ package models
 
 type User struct {
 	ID    string  `json:"id"`
-	Email string  `json:"email"`
+	Stream string  `json:"stream"`
 	Score []Score `json:"score"`
 }
 
