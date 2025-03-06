@@ -1,0 +1,285 @@
+{
+	"info": {
+		"_postman_id": "b5e8f9b9-9b9b-9b9b-9b9b-9b9b9b9b9b9b",
+		"name": "Learning Activities Streak System",
+		"description": "Collection for the Learning Activities Streak System API endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "User Management",
+			"item": [
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"phone\": \"+1234567890\",\n    \"batch_id\": \"batch1\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:96/api/users",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "96",
+							"path": ["api", "users"]
+						},
+						"description": "Create a new user in the system"
+					}
+				},
+				{
+					"name": "Get User",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:96/api/users/{{user_id}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "96",
+							"path": ["api", "users", "{{user_id}}"]
+						},
+						"description": "Get user details by user ID"
+					}
+				}
+			]
+		},
+		{
+			"name": "Streak Management",
+			"item": [
+				{
+					"name": "Record Activity",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"activity_type\": \"learning\",\n    \"duration_minutes\": 30\n}"
+						},
+						"url": {
+							"raw": "http://localhost:96/api/streaks/activity",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "96",
+							"path": ["api", "streaks", "activity"]
+						},
+						"description": "Record a learning activity for a user"
+					}
+				},
+				{
+					"name": "Get User Streak Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:96/api/streaks/user/{{user_id}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "96",
+							"path": ["api", "streaks", "user", "{{user_id}}"]
+						},
+						"description": "Get user's streak information"
+					}
+				}
+			]
+		},
+		{
+			"name": "Rating System",
+			"item": [
+				{
+					"name": "Get User Rating",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:96/api/ratings/user/{{user_id}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "96",
+							"path": ["api", "ratings", "user", "{{user_id}}"]
+						},
+						"description": "Get user's current rating"
+					}
+				},
+				{
+					"name": "Get Rating Breakdown",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:96/api/ratings/user/{{user_id}}/breakdown",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "96",
+							"path": ["api", "ratings", "user", "{{user_id}}", "breakdown"]
+						},
+						"description": "Get detailed breakdown of user's rating calculation"
+					}
+				}
+			]
+		},
+		{
+			"name": "Leaderboard",
+			"item": [
+				{
+					"name": "Get Batch Leaderboard",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:96/api/leaderboards/batch/{{batch_id}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "96",
+							"path": ["api", "leaderboards", "batch", "{{batch_id}}"]
+						},
+						"description": "Get leaderboard for a specific batch"
+					}
+				},
+				{
+					"name": "Get Top Performers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:96/api/leaderboards/top",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "96",
+							"path": ["api", "leaderboards", "top"]
+						},
+						"description": "Get global top performers"
+					}
+				},
+				{
+					"name": "Get Leaderboard Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:96/api/leaderboards/batch/{{batch_id}}/stats",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "96",
+							"path": ["api", "leaderboards", "batch", "{{batch_id}}", "stats"]
+						},
+						"description": "Get statistics for batch leaderboard"
+					}
+				},
+				{
+					"name": "Get Rating Distribution",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:96/api/leaderboards/batch/{{batch_id}}/rating-distribution",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "96",
+							"path": ["api", "leaderboards", "batch", "{{batch_id}}", "rating-distribution"]
+						},
+						"description": "Get rating distribution for a batch"
+					}
+				},
+				{
+					"name": "Get Streak Distribution",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:96/api/leaderboards/batch/{{batch_id}}/streak-distribution",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "96",
+							"path": ["api", "leaderboards", "batch", "{{batch_id}}", "streak-distribution"]
+						},
+						"description": "Get streak distribution for a batch"
+					}
+				}
+			]
+		},
+		{
+			"name": "Rewards",
+			"item": [
+				{
+					"name": "Get User Rewards",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:96/api/rewards/user/{{user_id}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "96",
+							"path": ["api", "rewards", "user", "{{user_id}}"]
+						},
+						"description": "Get rewards for a specific user"
+					}
+				},
+				{
+					"name": "Get Reward Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:96/api/rewards/reward/{{reward_id}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "96",
+							"path": ["api", "rewards", "reward", "{{reward_id}}"]
+						},
+						"description": "Get details of a specific reward"
+					}
+				},
+				{
+					"name": "Get Available Rewards",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:96/api/rewards/available/{{rating}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "96",
+							"path": ["api", "rewards", "available", "{{rating}}"]
+						},
+						"description": "Get available rewards for a specific rating"
+					}
+				},
+				{
+					"name": "Get Reward Progress",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:96/api/rewards/progress/{{user_id}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "96",
+							"path": ["api", "rewards", "progress", "{{user_id}}"]
+						},
+						"description": "Get user's progress towards next reward"
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:96",
+			"type": "string"
+		}
+	]
+} 
