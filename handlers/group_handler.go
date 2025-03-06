@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"allen_hackathon/models"
+	"allen_hackathon/services"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
-	"github.com/pallag05/7cents/models"
-	"github.com/pallag05/7cents/services"
 )
 
 type GroupHandler struct {
@@ -45,4 +47,24 @@ func (h *GroupHandler) GetGroupsPage(c *gin.Context) {
 	}
 
 	c.JSON(200, groupsPage)
+// GetGroup handles the GET request for retrieving a group by ID
+func (h *GroupHandler) GetGroup(c *gin.Context) {
+	groupID := c.Param("id")
+	if groupID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "group ID is required"})
+		return
+	}
+
+	group, err := h.groupService.GetGroup(groupID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if group == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "group not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, group)
 }

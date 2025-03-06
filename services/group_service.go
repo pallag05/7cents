@@ -1,9 +1,9 @@
 package services
 
 import (
+	"allen_hackathon/models"
+	"allen_hackathon/storage"
 	"github.com/google/uuid"
-	"github.com/pallag05/7cents/models"
-	"github.com/pallag05/7cents/storage"
 )
 
 type GroupService struct {
@@ -70,4 +70,12 @@ func (s *GroupService) GetGroupsPage(userID string) (*models.GroupsPageResponse,
 		SystemRecommendedGroups: recommendedGroupsList,
 		UserActiveGroups:        activeGroupsList,
 	}, nil
+}
+
+func (s *GroupService) GetGroup(id string) (*models.Group, error) {
+	group, err := s.store.GetGroup(id)
+	if err != nil {
+		return nil, err
+	}
+	return group, nil
 }
