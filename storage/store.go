@@ -20,4 +20,10 @@ type Store interface {
 	AddMemberToGroup(groupID string, userID string) error
 	RemoveMemberFromGroup(groupID string, userID string) error
 	AddMessageToGroup(groupID string, message *models.Message) error
+
+	// UserGroup operations
+	GetUserGroup(userID string) (*models.UserGroup, error)
+	CreateUserGroup(userGroup *models.UserGroup) error
+	UpdateUserGroup(userGroup *models.UserGroup) error
+	GetGroupsByIDs(groupIDs []string) ([]*models.Group, error)
 }

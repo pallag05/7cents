@@ -25,6 +25,7 @@ func main() {
 		groups := api.Group("/groups")
 		{
 			groups.POST("", groupHandler.CreateGroup)
+			groups.GET("/user/:user_id", groupHandler.GetGroupsPage)
 		}
 	}
 

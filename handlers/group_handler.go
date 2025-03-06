@@ -30,3 +30,19 @@ func (h *GroupHandler) CreateGroup(c *gin.Context) {
 
 	c.JSON(201, group)
 }
+
+func (h *GroupHandler) GetGroupsPage(c *gin.Context) {
+	userID := c.Param("user_id")
+	if userID == "" {
+		c.JSON(400, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	groupsPage, err := h.groupService.GetGroupsPage(userID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, groupsPage)
+}
