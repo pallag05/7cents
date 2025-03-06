@@ -48,6 +48,7 @@ func (h *GroupHandler) GetGroupsPage(c *gin.Context) {
 
 	c.JSON(200, groupsPage)
 }
+
 // GetGroup handles the GET request for retrieving a group by ID
 func (h *GroupHandler) GetGroup(c *gin.Context) {
 	groupID := c.Param("id")
@@ -68,4 +69,26 @@ func (h *GroupHandler) GetGroup(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, group)
+}
+
+// JoinGroup handles the POST request for a user to join a group
+func (h *GroupHandler) JoinGroup(c *gin.Context) {
+	groupID := c.Param("id")
+	if groupID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "group ID is required"})
+		return
+	}
+
+	userID := c.Param("user_id")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user ID is required"})
+		return
+	}
+
+	if err := h.groupService.JoinGroup(groupID, userID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Successfully joined the group"})
 }
