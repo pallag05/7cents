@@ -4,6 +4,9 @@ import (
 	"allen_hackathon/models"
 	"allen_hackathon/storage"
 	"errors"
+	"fmt"
+	"strconv"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,6 +28,75 @@ type RatingBreakdown struct {
 	StreakType          string  `json:"streak_type"`
 	LastStreakUpdated   string  `json:"last_streak_updated"`
 	DaysSinceLastStreak int     `json:"days_since_last_streak"`
+}
+
+// LeaderboardEntry represents a user's position in the leaderboard
+type LeaderboardEntry struct {
+	Rank        int     `json:"rank"`
+	UserID      string  `json:"user_id"`
+	UserName    string  `json:"user_name"`
+	Score       float64 `json:"score"`
+	Rating      string  `json:"rating"`
+	StreakCount int     `json:"streak_count"`
+	BatchID     string  `json:"batch_id"`
+}
+
+// LeaderboardResponse represents the complete leaderboard response
+type LeaderboardResponse struct {
+	BatchID     string             `json:"batch_id"`
+	TotalUsers  int                `json:"total_users"`
+	Entries     []LeaderboardEntry `json:"entries"`
+	LastUpdated string             `json:"last_updated"`
+}
+
+// Cache keys
+const (
+	cacheKeyBatchLeaderboard = "batch_leaderboard_%s_%s_%s_%s_%s"
+	cacheKeyTopPerformers    = "top_performers_%s_%s_%s_%s_%s"
+	cacheDuration            = 5 * time.Minute
+)
+
+// Cache structure
+type leaderboardCache struct {
+	entries     []LeaderboardEntry
+	lastUpdated time.Time
+}
+
+var (
+	batchLeaderboardCache = make(map[string]*leaderboardCache)
+	topPerformersCache    = make(map[string]*leaderboardCache)
+	cacheMutex            sync.RWMutex
+)
+
+// LeaderboardStats represents statistics for the leaderboard
+type LeaderboardStats struct {
+	TotalUsers    int     `json:"total_users"`
+	AverageScore  float64 `json:"average_score"`
+	HighestScore  float64 `json:"highest_score"`
+	LowestScore   float64 `json:"lowest_score"`
+	AverageStreak int     `json:"average_streak"`
+	HighestStreak int     `json:"highest_streak"`
+	LowestStreak  int     `json:"lowest_streak"`
+	LastUpdated   string  `json:"last_updated"`
+}
+
+// RatingDistribution represents the distribution of ratings
+type RatingDistribution struct {
+	Novice       int    `json:"novice"`
+	Beginner     int    `json:"beginner"`
+	Intermediate int    `json:"intermediate"`
+	Advanced     int    `json:"advanced"`
+	Expert       int    `json:"expert"`
+	LastUpdated  string `json:"last_updated"`
+}
+
+// StreakDistribution represents the distribution of streaks
+type StreakDistribution struct {
+	ZeroToFive     int    `json:"zero_to_five"`
+	SixToTen       int    `json:"six_to_ten"`
+	ElevenToTwenty int    `json:"eleven_to_twenty"`
+	TwentyOnePlus  int    `json:"twenty_one_plus"`
+	LastUpdated    string `json:"last_updated"`
 }
 
 func NewStreakService() *StreakService {
@@ -285,4 +357,331 @@ func calculateNewRating(streakToUser *models.StreakToUser) string {
 
 func generateID() string {
 	return uuid.New().String()
+}
+
+// GetBatchLeaderboard returns the leaderboard for a specific batch/class
+func (s *StreakService) GetBatchLeaderboard(batchID, limitStr, offsetStr, rating string, startDate, endDate time.Time) (*LeaderboardResponse, error) {
+	// Generate cache key
+	cacheKey := fmt.Sprintf(cacheKeyBatchLeaderboard, batchID, limitStr, offsetStr, rating, startDate.Format(time.RFC3339))
+
+	// Check cache first
+	cacheMutex.RLock()
+	if cache, exists := batchLeaderboardCache[cacheKey]; exists && time.Since(cache.lastUpdated) < cacheDuration {
+		cacheMutex.RUnlock()
+		return &LeaderboardResponse{
+			BatchID:     batchID,
+			TotalUsers:  len(cache.entries),
+			Entries:     cache.entries,
+			LastUpdated: cache.lastUpdated.Format(time.RFC3339),
+		}, nil
+	}
+	cacheMutex.RUnlock()
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		limit = 10
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil {
+		offset = 0
+	}
+
+	// Get all users in the batch
+	users := s.store.GetUsersByBatch(batchID)
+	if len(users) == 0 {
+		return nil, errors.New("no users found in batch")
+	}
+
+	// Calculate scores for all users
+	var entries []LeaderboardEntry
+	for _, user := range users {
+		breakdown, err := s.GetRatingBreakdown(user.ID)
+		if err != nil {
+			continue // Skip users with no rating
+		}
+
+		// Apply filters
+		if rating != "" && breakdown.CurrentRating != rating {
+			continue
+		}
+
+		// Check date range if provided
+		lastUpdated, err := time.Parse(time.RFC3339, breakdown.LastStreakUpdated)
+		if err != nil {
+			continue // Skip if we can't parse the date
+		}
+		if !startDate.IsZero() && lastUpdated.Before(startDate) {
+			continue
+		}
+		if !endDate.IsZero() && lastUpdated.After(endDate) {
+			continue
+		}
+
+		entries = append(entries, LeaderboardEntry{
+			UserID:      user.ID,
+			UserName:    user.Name,
+			Score:       breakdown.FinalScore,
+			Rating:      breakdown.CurrentRating,
+			StreakCount: breakdown.StreakCount,
+			BatchID:     batchID,
+		})
+	}
+
+	// Sort entries by score in descending order
+	sortLeaderboardEntries(entries)
+
+	// Add ranks
+	for i := range entries {
+		entries[i].Rank = i + 1
+	}
+
+	// Apply pagination
+	start := offset
+	end := offset + limit
+	if start >= len(entries) {
+		start = 0
+		end = 0
+	}
+	if end > len(entries) {
+		end = len(entries)
+	}
+
+	// Update cache
+	cacheMutex.Lock()
+	batchLeaderboardCache[cacheKey] = &leaderboardCache{
+		entries:     entries[start:end],
+		lastUpdated: time.Now(),
+	}
+	cacheMutex.Unlock()
+
+	return &LeaderboardResponse{
+		BatchID:     batchID,
+		TotalUsers:  len(entries),
+		Entries:     entries[start:end],
+		LastUpdated: time.Now().Format(time.RFC3339),
+	}, nil
+}
+
+// GetTopPerformers returns the top performers across all batches
+func (s *StreakService) GetTopPerformers(limitStr, offsetStr, rating string, startDate, endDate time.Time) ([]LeaderboardEntry, error) {
+	// Generate cache key
+	cacheKey := fmt.Sprintf(cacheKeyTopPerformers, limitStr, offsetStr, rating, startDate.Format(time.RFC3339))
+
+	// Check cache first
+	cacheMutex.RLock()
+	if cache, exists := topPerformersCache[cacheKey]; exists && time.Since(cache.lastUpdated) < cacheDuration {
+		cacheMutex.RUnlock()
+		return cache.entries, nil
+	}
+	cacheMutex.RUnlock()
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		limit = 10
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil {
+		offset = 0
+	}
+
+	// Get all users
+	users := s.store.GetAllUsers()
+	if len(users) == 0 {
+		return nil, errors.New("no users found")
+	}
+
+	// Calculate scores for all users
+	var entries []LeaderboardEntry
+	for _, user := range users {
+		breakdown, err := s.GetRatingBreakdown(user.ID)
+		if err != nil {
+			continue // Skip users with no rating
+		}
+
+		// Apply filters
+		if rating != "" && breakdown.CurrentRating != rating {
+			continue
+		}
+
+		// Check date range if provided
+		lastUpdated, err := time.Parse(time.RFC3339, breakdown.LastStreakUpdated)
+		if err != nil {
+			continue // Skip if we can't parse the date
+		}
+		if !startDate.IsZero() && lastUpdated.Before(startDate) {
+			continue
+		}
+		if !endDate.IsZero() && lastUpdated.After(endDate) {
+			continue
+		}
+
+		entries = append(entries, LeaderboardEntry{
+			UserID:      user.ID,
+			UserName:    user.Name,
+			Score:       breakdown.FinalScore,
+			Rating:      breakdown.CurrentRating,
+			StreakCount: breakdown.StreakCount,
+			BatchID:     user.BatchID,
+		})
+	}
+
+	// Sort entries by score in descending order
+	sortLeaderboardEntries(entries)
+
+	// Add ranks
+	for i := range entries {
+		entries[i].Rank = i + 1
+	}
+
+	// Apply pagination
+	start := offset
+	end := offset + limit
+	if start >= len(entries) {
+		start = 0
+		end = 0
+	}
+	if end > len(entries) {
+		end = len(entries)
+	}
+
+	// Update cache
+	cacheMutex.Lock()
+	topPerformersCache[cacheKey] = &leaderboardCache{
+		entries:     entries[start:end],
+		lastUpdated: time.Now(),
+	}
+	cacheMutex.Unlock()
+
+	return entries[start:end], nil
+}
+
+// Helper function to sort leaderboard entries
+func sortLeaderboardEntries(entries []LeaderboardEntry) {
+	// Sort by score in descending order
+	for i := 0; i < len(entries)-1; i++ {
+		for j := i + 1; j < len(entries); j++ {
+			if entries[i].Score < entries[j].Score {
+				entries[i], entries[j] = entries[j], entries[i]
+			}
+		}
+	}
+}
+
+// GetLeaderboardStats returns statistics for the leaderboard
+func (s *StreakService) GetLeaderboardStats(batchID string) (*LeaderboardStats, error) {
+	users := s.store.GetUsersByBatch(batchID)
+	if len(users) == 0 {
+		return nil, errors.New("no users found in batch")
+	}
+
+	var totalScore float64
+	var totalStreak int
+	highestScore := -1.0
+	lowestScore := 101.0
+	highestStreak := 0
+	lowestStreak := 999999
+
+	for _, user := range users {
+		breakdown, err := s.GetRatingBreakdown(user.ID)
+		if err != nil {
+			continue
+		}
+
+		score := breakdown.FinalScore
+		streak := breakdown.StreakCount
+
+		totalScore += score
+		totalStreak += streak
+
+		if score > highestScore {
+			highestScore = score
+		}
+		if score < lowestScore {
+			lowestScore = score
+		}
+		if streak > highestStreak {
+			highestStreak = streak
+		}
+		if streak < lowestStreak {
+			lowestStreak = streak
+		}
+	}
+
+	return &LeaderboardStats{
+		TotalUsers:    len(users),
+		AverageScore:  totalScore / float64(len(users)),
+		HighestScore:  highestScore,
+		LowestScore:   lowestScore,
+		AverageStreak: totalStreak / len(users),
+		HighestStreak: highestStreak,
+		LowestStreak:  lowestStreak,
+		LastUpdated:   time.Now().Format(time.RFC3339),
+	}, nil
+}
+
+// GetRatingDistribution returns the distribution of ratings in the leaderboard
+func (s *StreakService) GetRatingDistribution(batchID string) (*RatingDistribution, error) {
+	users := s.store.GetUsersByBatch(batchID)
+	if len(users) == 0 {
+		return nil, errors.New("no users found in batch")
+	}
+
+	distribution := &RatingDistribution{}
+
+	for _, user := range users {
+		breakdown, err := s.GetRatingBreakdown(user.ID)
+		if err != nil {
+			continue
+		}
+
+		switch breakdown.CurrentRating {
+		case "novice":
+			distribution.Novice++
+		case "beginner":
+			distribution.Beginner++
+		case "intermediate":
+			distribution.Intermediate++
+		case "advanced":
+			distribution.Advanced++
+		case "expert":
+			distribution.Expert++
+		}
+	}
+
+	distribution.LastUpdated = time.Now().Format(time.RFC3339)
+	return distribution, nil
+}
+
+// GetStreakDistribution returns the distribution of streaks in the leaderboard
+func (s *StreakService) GetStreakDistribution(batchID string) (*StreakDistribution, error) {
+	users := s.store.GetUsersByBatch(batchID)
+	if len(users) == 0 {
+		return nil, errors.New("no users found in batch")
+	}
+
+	distribution := &StreakDistribution{}
+
+	for _, user := range users {
+		breakdown, err := s.GetRatingBreakdown(user.ID)
+		if err != nil {
+			continue
+		}
+
+		streak := breakdown.StreakCount
+		switch {
+		case streak <= 5:
+			distribution.ZeroToFive++
+		case streak <= 10:
+			distribution.SixToTen++
+		case streak <= 20:
+			distribution.ElevenToTwenty++
+		default:
+			distribution.TwentyOnePlus++
+		}
+	}
+
+	distribution.LastUpdated = time.Now().Format(time.RFC3339)
+	return distribution, nil
 }

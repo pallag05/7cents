@@ -41,6 +41,7 @@ func (s *MemoryStore) populateDummyData() {
 			ID:        "user1",
 			Name:      "John Doe",
 			Phone:     "+1234567890",
+			BatchID:   "batch1",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
@@ -48,6 +49,7 @@ func (s *MemoryStore) populateDummyData() {
 			ID:        "user2",
 			Name:      "Jane Smith",
 			Phone:     "+1987654321",
+			BatchID:   "batch1",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
@@ -55,6 +57,7 @@ func (s *MemoryStore) populateDummyData() {
 			ID:        "user3",
 			Name:      "Bob Johnson",
 			Phone:     "+1122334455",
+			BatchID:   "batch2",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
@@ -206,4 +209,30 @@ func (s *MemoryStore) SaveStreakToUser(streakToUser *models.StreakToUser) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.streakToUsers[streakToUser.UserID] = streakToUser
+}
+
+// GetUsersByBatch returns all users in a specific batch
+func (s *MemoryStore) GetUsersByBatch(batchID string) []*models.User {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var batchUsers []*models.User
+	for _, user := range s.users {
+		if user.BatchID == batchID {
+			batchUsers = append(batchUsers, user)
+		}
+	}
+	return batchUsers
+}
+
+// GetAllUsers returns all users in the store
+func (s *MemoryStore) GetAllUsers() []*models.User {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	users := make([]*models.User, 0, len(s.users))
+	for _, user := range s.users {
+		users = append(users, user)
+	}
+	return users
 }

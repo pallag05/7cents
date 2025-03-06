@@ -24,6 +24,7 @@ func main() {
 	// Initialize handlers
 	streakHandler := handlers.NewStreakHandler(streakService)
 	ratingHandler := handlers.NewRatingHandler(streakService)
+	leaderboardHandler := handlers.NewLeaderboardHandler(streakService)
 
 	// API routes
 	api := router.Group("/api")
@@ -40,6 +41,16 @@ func main() {
 		{
 			ratings.GET("/user/:user_id", ratingHandler.CalculateRating)
 			ratings.GET("/user/:user_id/breakdown", ratingHandler.GetRatingBreakdown)
+		}
+
+		// Leaderboard routes
+		leaderboards := api.Group("/leaderboards")
+		{
+			leaderboards.GET("/batch/:batch_id", leaderboardHandler.GetBatchLeaderboard)
+			leaderboards.GET("/top", leaderboardHandler.GetTopPerformers)
+			leaderboards.GET("/batch/:batch_id/stats", leaderboardHandler.GetLeaderboardStats)
+			leaderboards.GET("/batch/:batch_id/rating-distribution", leaderboardHandler.GetRatingDistribution)
+			leaderboards.GET("/batch/:batch_id/streak-distribution", leaderboardHandler.GetStreakDistribution)
 		}
 	}
 
