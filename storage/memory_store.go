@@ -154,3 +154,16 @@ func (s *MemoryStore) GetGroupsByIDs(groupIDs []string) ([]*models.Group, error)
 	}
 	return groups, nil
 }
+
+func (s *MemoryStore) AddActionToGroup(groupID string, action *models.Action) error {
+	group, err := s.GetGroup(groupID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return nil
+	}
+
+	group.Actions = append(group.Actions, *action)
+	return s.UpdateGroup(group)
+}

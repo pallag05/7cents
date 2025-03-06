@@ -29,6 +29,7 @@ func main() {
 			groups.GET("/user/:user_id", groupHandler.GetGroupsPage)
 			groups.GET("/:id", groupHandler.GetGroup)
 			groups.POST("/:id/join/:user_id", groupHandler.JoinGroup)
+			groups.PUT("/:id", groupHandler.UpdateGroup)
 		}
 	}
 
