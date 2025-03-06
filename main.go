@@ -23,6 +23,7 @@ func main() {
 
 	// Initialize handlers
 	streakHandler := handlers.NewStreakHandler(streakService)
+	ratingHandler := handlers.NewRatingHandler(streakService)
 
 	// API routes
 	api := router.Group("/api")
@@ -32,6 +33,13 @@ func main() {
 		{
 			streaks.POST("/activity", streakHandler.RecordActivity)
 			streaks.GET("/user/:user_id", streakHandler.GetUserStreakInfo)
+		}
+
+		// Rating routes
+		ratings := api.Group("/ratings")
+		{
+			ratings.GET("/user/:user_id", ratingHandler.CalculateRating)
+			ratings.GET("/user/:user_id/breakdown", ratingHandler.GetRatingBreakdown)
 		}
 	}
 

@@ -3,6 +3,7 @@ package storage
 import (
 	"allen_hackathon/models"
 	"sync"
+	"time"
 )
 
 type MemoryStore struct {
@@ -23,8 +24,139 @@ func GetStore() *MemoryStore {
 			streakItems:   make(map[string]*models.StreakItem),
 			streakToUsers: make(map[string]*models.StreakToUser),
 		}
+		// Populate with dummy data
+		store.populateDummyData()
 	}
 	return store
+}
+
+// populateDummyData adds some initial test data to the store
+func (s *MemoryStore) populateDummyData() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Create dummy users
+	dummyUsers := []*models.User{
+		{
+			ID:        "user1",
+			Name:      "John Doe",
+			Phone:     "+1234567890",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+		{
+			ID:        "user2",
+			Name:      "Jane Smith",
+			Phone:     "+1987654321",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+		{
+			ID:        "user3",
+			Name:      "Bob Johnson",
+			Phone:     "+1122334455",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+	}
+
+	// Create dummy streaks
+	dummyStreaks := []*models.Streak{
+		{
+			ID:                "streak1",
+			Type:              models.StreakTypeBeginner,
+			ThresholdDuration: 30,
+			CreatedAt:         time.Now(),
+			UpdatedAt:         time.Now(),
+		},
+		{
+			ID:                "streak2",
+			Type:              models.StreakTypeIntermediate,
+			ThresholdDuration: 45,
+			CreatedAt:         time.Now(),
+			UpdatedAt:         time.Now(),
+		},
+		{
+			ID:                "streak3",
+			Type:              models.StreakTypeAdvanced,
+			ThresholdDuration: 60,
+			CreatedAt:         time.Now(),
+			UpdatedAt:         time.Now(),
+		},
+	}
+
+	// Create dummy streak items
+	dummyStreakItems := []*models.StreakItem{
+		{
+			ID:        "item1",
+			Type:      models.StreakItemTypeVideo,
+			StreakID:  "streak1",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+		{
+			ID:        "item2",
+			Type:      models.StreakItemTypeQuestion,
+			StreakID:  "streak1",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+		{
+			ID:        "item3",
+			Type:      models.StreakItemTypeFlash,
+			StreakID:  "streak2",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+	}
+
+	// Create dummy streak to user mappings
+	dummyStreakToUsers := []*models.StreakToUser{
+		{
+			UserID:            "user1",
+			StreakCount:       5,
+			CurrentStreakID:   "streak1",
+			CurrentRating:     "beginner",
+			MaxRating:         "beginner",
+			LastStreakUpdated: time.Now(),
+			CreatedAt:         time.Now(),
+			UpdatedAt:         time.Now(),
+		},
+		{
+			UserID:            "user2",
+			StreakCount:       12,
+			CurrentStreakID:   "streak2",
+			CurrentRating:     "intermediate",
+			MaxRating:         "intermediate",
+			LastStreakUpdated: time.Now(),
+			CreatedAt:         time.Now(),
+			UpdatedAt:         time.Now(),
+		},
+		{
+			UserID:            "user3",
+			StreakCount:       25,
+			CurrentStreakID:   "streak3",
+			CurrentRating:     "advanced",
+			MaxRating:         "advanced",
+			LastStreakUpdated: time.Now(),
+			CreatedAt:         time.Now(),
+			UpdatedAt:         time.Now(),
+		},
+	}
+
+	// Add all dummy data to the store
+	for _, user := range dummyUsers {
+		s.users[user.ID] = user
+	}
+	for _, streak := range dummyStreaks {
+		s.streaks[streak.ID] = streak
+	}
+	for _, item := range dummyStreakItems {
+		s.streakItems[item.ID] = item
+	}
+	for _, streakToUser := range dummyStreakToUsers {
+		s.streakToUsers[streakToUser.UserID] = streakToUser
+	}
 }
 
 // User operations

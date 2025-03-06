@@ -3,6 +3,7 @@ package services
 import (
 	"allen_hackathon/models"
 	"allen_hackathon/storage"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,9 +13,153 @@ type StreakService struct {
 	store *storage.MemoryStore
 }
 
+// RatingBreakdown provides detailed information about rating calculation
+type RatingBreakdown struct {
+	BaseScore           float64 `json:"base_score"`
+	StreakMultiplier    float64 `json:"streak_multiplier"`
+	TypeMultiplier      float64 `json:"type_multiplier"`
+	PenaltyPoints       float64 `json:"penalty_points"`
+	FinalScore          float64 `json:"final_score"`
+	CurrentRating       string  `json:"current_rating"`
+	StreakCount         int     `json:"streak_count"`
+	StreakType          string  `json:"streak_type"`
+	LastStreakUpdated   string  `json:"last_streak_updated"`
+	DaysSinceLastStreak int     `json:"days_since_last_streak"`
+}
+
 func NewStreakService() *StreakService {
 	return &StreakService{
 		store: storage.GetStore(),
+	}
+}
+
+// CalculateUserRating calculates the user's rating based on their streak performance
+func (s *StreakService) CalculateUserRating(userID string) (string, error) {
+	breakdown, err := s.GetRatingBreakdown(userID)
+	if err != nil {
+		return "", err
+	}
+
+	return breakdown.CurrentRating, nil
+}
+
+// GetRatingBreakdown provides detailed information about the rating calculation
+func (s *StreakService) GetRatingBreakdown(userID string) (*RatingBreakdown, error) {
+	streakToUser, exists := s.store.GetStreakToUser(userID)
+	if !exists {
+		return nil, errors.New("user not found")
+	}
+
+	streak, exists := s.store.GetStreak(streakToUser.CurrentStreakID)
+	if !exists {
+		return nil, errors.New("streak not found")
+	}
+
+	// Calculate base score (0-100)
+	baseScore := calculateBaseScore(streakToUser.StreakCount)
+
+	// Calculate streak multiplier (1.0-2.0)
+	streakMultiplier := calculateStreakMultiplier(streakToUser.StreakCount)
+
+	// Calculate type multiplier based on streak type
+	typeMultiplier := calculateTypeMultiplier(streak.Type)
+
+	// Calculate penalty points for missed streaks
+	penaltyPoints := calculatePenaltyPoints(streakToUser.LastStreakUpdated)
+
+	// Calculate final score
+	finalScore := (baseScore * streakMultiplier * typeMultiplier) - penaltyPoints
+
+	// Ensure final score is within bounds
+	if finalScore < 0 {
+		finalScore = 0
+	}
+	if finalScore > 100 {
+		finalScore = 100
+	}
+
+	// Calculate current rating based on final score
+	currentRating := calculateRatingFromScore(finalScore)
+
+	// Calculate days since last streak
+	daysSinceLastStreak := int(time.Since(streakToUser.LastStreakUpdated).Hours() / 24)
+
+	return &RatingBreakdown{
+		BaseScore:           baseScore,
+		StreakMultiplier:    streakMultiplier,
+		TypeMultiplier:      typeMultiplier,
+		PenaltyPoints:       penaltyPoints,
+		FinalScore:          finalScore,
+		CurrentRating:       currentRating,
+		StreakCount:         streakToUser.StreakCount,
+		StreakType:          string(streak.Type),
+		LastStreakUpdated:   streakToUser.LastStreakUpdated.Format(time.RFC3339),
+		DaysSinceLastStreak: daysSinceLastStreak,
+	}, nil
+}
+
+// Helper functions for rating calculation
+func calculateBaseScore(streakCount int) float64 {
+	// Base score increases with streak count, but with diminishing returns
+	if streakCount <= 0 {
+		return 0
+	}
+	if streakCount >= 30 {
+		return 100
+	}
+	return float64(streakCount) * 3.33 // Linear scaling up to 30 days
+}
+
+func calculateStreakMultiplier(streakCount int) float64 {
+	// Multiplier increases with streak count, but with diminishing returns
+	if streakCount <= 0 {
+		return 1.0
+	}
+	if streakCount >= 30 {
+		return 2.0
+	}
+	return 1.0 + (float64(streakCount) * 0.033) // Linear scaling up to 30 days
+}
+
+func calculateTypeMultiplier(streakType models.StreakType) float64 {
+	switch streakType {
+	case models.StreakTypeBeginner:
+		return 1.0
+	case models.StreakTypeIntermediate:
+		return 1.2
+	case models.StreakTypeAdvanced:
+		return 1.5
+	default:
+		return 1.0
+	}
+}
+
+func calculatePenaltyPoints(lastStreakUpdated time.Time) float64 {
+	daysSinceLastStreak := time.Since(lastStreakUpdated).Hours() / 24
+	if daysSinceLastStreak <= 1 {
+		return 0
+	}
+
+	// Exponential penalty for missed streaks
+	penalty := 0.0
+	for i := 1.0; i <= daysSinceLastStreak; i++ {
+		penalty += i * 2 // Each day adds more penalty
+	}
+	return penalty
+}
+
+func calculateRatingFromScore(score float64) string {
+	switch {
+	case score >= 90:
+		return "expert"
+	case score >= 75:
+		return "advanced"
+	case score >= 50:
+		return "intermediate"
+	case score >= 25:
+		return "beginner"
+	default:
+		return "novice"
 	}
 }
 
