@@ -26,11 +26,8 @@ func main() {
 		groups := api.Group("/groups")
 		{
 			groups.POST("", groupHandler.CreateGroup)
-<<<<<<< Updated upstream
 			groups.GET("/user/:user_id", groupHandler.GetGroupsPage)
-=======
 			groups.GET("/:id", groupHandler.GetGroup)
->>>>>>> Stashed changes
 		}
 	}
 

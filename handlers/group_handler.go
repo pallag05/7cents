@@ -47,6 +47,7 @@ func (h *GroupHandler) GetGroupsPage(c *gin.Context) {
 	}
 
 	c.JSON(200, groupsPage)
+}
 // GetGroup handles the GET request for retrieving a group by ID
 func (h *GroupHandler) GetGroup(c *gin.Context) {
 	groupID := c.Param("id")
