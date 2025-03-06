@@ -74,6 +74,8 @@ func main() {
 			rewards.GET("/reward/:reward_id", rewardHandler.GetRewardDetails)
 			rewards.GET("/available/:rating", rewardHandler.GetAvailableRewards)
 			rewards.GET("/progress/:user_id", rewardHandler.GetRewardProgress)
+			rewards.POST("/check", rewardHandler.CheckAndAwardRewards)
+			rewards.GET("/user/:user_id/progress", rewardHandler.GetUserRewardProgress)
 		}
 
 		// Freeze routes

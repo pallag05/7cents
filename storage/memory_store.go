@@ -392,3 +392,15 @@ func (s *MemoryStore) GetAllFrozenStreaks() []*models.StreakToUser {
 	}
 	return frozenStreaks
 }
+
+// GetAllRewards returns all rewards in the store
+func (s *MemoryStore) GetAllRewards() []*models.Reward {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	rewards := make([]*models.Reward, 0, len(s.rewards))
+	for _, reward := range s.rewards {
+		rewards = append(rewards, reward)
+	}
+	return rewards
+}
