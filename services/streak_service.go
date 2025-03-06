@@ -156,13 +156,16 @@ func (s *StreakService) GetRatingBreakdown(userID string) (*RatingBreakdown, err
 	// Calculate days since last streak
 	daysSinceLastStreak := int(time.Since(streakToUser.LastStreakUpdated).Hours() / 24)
 
+	// Convert rating to string for display
+	ratingString := getRatingString(currentRating)
+
 	return &RatingBreakdown{
 		BaseScore:           baseScore,
 		StreakMultiplier:    streakMultiplier,
 		TypeMultiplier:      typeMultiplier,
 		PenaltyPoints:       penaltyPoints,
 		FinalScore:          finalScore,
-		CurrentRating:       currentRating,
+		CurrentRating:       ratingString,
 		StreakCount:         streakToUser.StreakCount,
 		StreakType:          string(streak.Type),
 		LastStreakUpdated:   streakToUser.LastStreakUpdated.Format(time.RFC3339),
@@ -220,15 +223,31 @@ func calculatePenaltyPoints(lastStreakUpdated time.Time) float64 {
 	return penalty
 }
 
-func calculateRatingFromScore(score float64) string {
+func calculateRatingFromScore(score float64) int {
 	switch {
 	case score >= 90:
-		return "expert"
+		return 5 // expert
 	case score >= 75:
-		return "advanced"
+		return 4 // advanced
 	case score >= 50:
-		return "intermediate"
+		return 3 // intermediate
 	case score >= 25:
+		return 2 // beginner
+	default:
+		return 1 // novice
+	}
+}
+
+// Helper function to convert rating integer to string
+func getRatingString(rating int) string {
+	switch rating {
+	case 5:
+		return "expert"
+	case 4:
+		return "advanced"
+	case 3:
+		return "intermediate"
+	case 2:
 		return "beginner"
 	default:
 		return "novice"
@@ -289,15 +308,26 @@ func (s *StreakService) RecordActivity(userID string, activityType models.Streak
 	// 8. Update user's rating if needed
 	oldRating := streakToUser.CurrentRating
 	if shouldUpdateRating(streakToUser) {
-		streakToUser.CurrentRating = calculateNewRating(streakToUser)
-		if streakToUser.CurrentRating > streakToUser.MaxRating {
-			streakToUser.MaxRating = streakToUser.CurrentRating
+		// Calculate new score
+		breakdown, err := s.GetRatingBreakdown(userID)
+		if err != nil {
+			return err
+		}
+
+		// Update current rating with the actual final score
+		streakToUser.CurrentRating = breakdown.FinalScore
+
+		// Update max rating if new score is higher
+		if breakdown.FinalScore > streakToUser.MaxRating {
+			streakToUser.MaxRating = breakdown.FinalScore
 		}
 
 		// 9. Check for rewards if rating has changed
 		if oldRating != streakToUser.CurrentRating {
 			rewardService := NewRewardService()
-			if err := rewardService.CheckAndAwardRewards(userID, streakToUser.CurrentRating); err != nil {
+			// Convert score to rating level for reward checking
+			ratingLevel := calculateRatingFromScore(breakdown.FinalScore)
+			if err := rewardService.CheckAndAwardRewards(userID, getRatingString(ratingLevel)); err != nil {
 				// Log the error but don't fail the activity recording
 				fmt.Printf("Error checking rewards: %v\n", err)
 			}
@@ -322,8 +352,8 @@ func (s *StreakService) getUserStreak(userID string) (*models.StreakToUser, erro
 			UserID:            userID,
 			StreakCount:       0,
 			CurrentStreakID:   "",
-			CurrentRating:     "beginner",
-			MaxRating:         "beginner",
+			CurrentRating:     1, // novice
+			MaxRating:         1, // novice
 			LastStreakUpdated: time.Now(),
 		}
 		s.store.SaveStreakToUser(streakToUser)
@@ -365,20 +395,6 @@ func shouldBreakStreak(lastUpdated time.Time) bool {
 
 func shouldUpdateRating(streakToUser *models.StreakToUser) bool {
 	return streakToUser.StreakCount%5 == 0
-}
-
-func calculateNewRating(streakToUser *models.StreakToUser) string {
-	switch streakToUser.CurrentRating {
-	case "beginner":
-		if streakToUser.StreakCount >= 10 {
-			return "intermediate"
-		}
-	case "intermediate":
-		if streakToUser.StreakCount >= 20 {
-			return "advanced"
-		}
-	}
-	return streakToUser.CurrentRating
 }
 
 func generateID() string {
@@ -492,7 +508,7 @@ func (s *StreakService) GetBatchLeaderboard(batchID, limitStr, offsetStr, rating
 // GetTopPerformers returns the top performers across all batches
 func (s *StreakService) GetTopPerformers(limitStr, offsetStr, rating string, startDate, endDate time.Time) ([]LeaderboardEntry, error) {
 	// Generate cache key
-	cacheKey := fmt.Sprintf(cacheKeyTopPerformers, limitStr, offsetStr, rating, startDate.Format(time.RFC3339))
+	cacheKey := fmt.Sprintf(cacheKeyTopPerformers, limitStr, offsetStr, rating, startDate.Format(time.RFC3339), endDate.Format(time.RFC3339))
 
 	// Check cache first
 	cacheMutex.RLock()
