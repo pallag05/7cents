@@ -11,6 +11,8 @@ type MemoryStore struct {
 	streaks       map[string]*models.Streak
 	streakItems   map[string]*models.StreakItem
 	streakToUsers map[string]*models.StreakToUser
+	rewards       map[string]*models.Reward
+	userRewards   map[string]*models.UserReward
 	mu            sync.RWMutex
 }
 
@@ -23,6 +25,8 @@ func GetStore() *MemoryStore {
 			streaks:       make(map[string]*models.Streak),
 			streakItems:   make(map[string]*models.StreakItem),
 			streakToUsers: make(map[string]*models.StreakToUser),
+			rewards:       make(map[string]*models.Reward),
+			userRewards:   make(map[string]*models.UserReward),
 		}
 		// Populate with dummy data
 		store.populateDummyData()
@@ -147,6 +151,60 @@ func (s *MemoryStore) populateDummyData() {
 		},
 	}
 
+	// Create dummy rewards
+	dummyRewards := []*models.Reward{
+		{
+			ID:          "reward1",
+			Name:        "Novice Badge",
+			Description: "Achieved novice level",
+			Type:        models.RewardTypeBadge,
+			Level:       models.RewardLevelNovice,
+			Value:       0,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+		{
+			ID:          "reward2",
+			Name:        "Beginner Points",
+			Description: "Earned 100 points for reaching beginner level",
+			Type:        models.RewardTypePoints,
+			Level:       models.RewardLevelBeginner,
+			Value:       100,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+		{
+			ID:          "reward3",
+			Name:        "Intermediate Discount",
+			Description: "10% discount on next course",
+			Type:        models.RewardTypeDiscount,
+			Level:       models.RewardLevelIntermediate,
+			Value:       10,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+		{
+			ID:          "reward4",
+			Name:        "Advanced Certificate",
+			Description: "Certificate of Advanced Achievement",
+			Type:        models.RewardTypeCertificate,
+			Level:       models.RewardLevelAdvanced,
+			Value:       0,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+		{
+			ID:          "reward5",
+			Name:        "Expert Badge",
+			Description: "Achieved expert level",
+			Type:        models.RewardTypeBadge,
+			Level:       models.RewardLevelExpert,
+			Value:       0,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+	}
+
 	// Add all dummy data to the store
 	for _, user := range dummyUsers {
 		s.users[user.ID] = user
@@ -159,6 +217,9 @@ func (s *MemoryStore) populateDummyData() {
 	}
 	for _, streakToUser := range dummyStreakToUsers {
 		s.streakToUsers[streakToUser.UserID] = streakToUser
+	}
+	for _, reward := range dummyRewards {
+		s.rewards[reward.ID] = reward
 	}
 }
 
@@ -235,4 +296,50 @@ func (s *MemoryStore) GetAllUsers() []*models.User {
 		users = append(users, user)
 	}
 	return users
+}
+
+// Reward operations
+func (s *MemoryStore) GetReward(rewardID string) (*models.Reward, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	reward, exists := s.rewards[rewardID]
+	return reward, exists
+}
+
+func (s *MemoryStore) SaveReward(reward *models.Reward) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.rewards[reward.ID] = reward
+}
+
+func (s *MemoryStore) GetUserRewards(userID string) []*models.UserReward {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var userRewards []*models.UserReward
+	for _, reward := range s.userRewards {
+		if reward.UserID == userID {
+			userRewards = append(userRewards, reward)
+		}
+	}
+	return userRewards
+}
+
+func (s *MemoryStore) SaveUserReward(userReward *models.UserReward) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.userRewards[userReward.ID] = userReward
+}
+
+func (s *MemoryStore) GetRewardsByLevel(level models.RewardLevel) []*models.Reward {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var rewards []*models.Reward
+	for _, reward := range s.rewards {
+		if reward.Level == level {
+			rewards = append(rewards, reward)
+		}
+	}
+	return rewards
 }

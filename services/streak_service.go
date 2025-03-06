@@ -271,14 +271,24 @@ func (s *StreakService) RecordActivity(userID string, activityType models.Streak
 	streakToUser.LastStreakUpdated = time.Now()
 
 	// 7. Update user's rating if needed
+	oldRating := streakToUser.CurrentRating
 	if shouldUpdateRating(streakToUser) {
 		streakToUser.CurrentRating = calculateNewRating(streakToUser)
 		if streakToUser.CurrentRating > streakToUser.MaxRating {
 			streakToUser.MaxRating = streakToUser.CurrentRating
 		}
+
+		// 8. Check for rewards if rating has changed
+		if oldRating != streakToUser.CurrentRating {
+			rewardService := NewRewardService()
+			if err := rewardService.CheckAndAwardRewards(userID, streakToUser.CurrentRating); err != nil {
+				// Log the error but don't fail the activity recording
+				fmt.Printf("Error checking rewards: %v\n", err)
+			}
+		}
 	}
 
-	// 8. Save all changes
+	// 9. Save all changes
 	return s.saveChanges(streakToUser, streakItem)
 }
 

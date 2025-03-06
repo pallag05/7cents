@@ -20,15 +20,26 @@ func main() {
 
 	// Initialize services
 	streakService := services.NewStreakService()
+	rewardService := services.NewRewardService()
+	userService := services.NewUserService()
 
 	// Initialize handlers
 	streakHandler := handlers.NewStreakHandler(streakService)
 	ratingHandler := handlers.NewRatingHandler(streakService)
 	leaderboardHandler := handlers.NewLeaderboardHandler(streakService)
+	rewardHandler := handlers.NewRewardHandler(rewardService)
+	userHandler := handlers.NewUserHandler(userService)
 
 	// API routes
 	api := router.Group("/api")
 	{
+		// User routes
+		users := api.Group("/users")
+		{
+			users.POST("", userHandler.CreateUser)
+			users.GET("/:user_id", userHandler.GetUser)
+		}
+
 		// Streak routes
 		streaks := api.Group("/streaks")
 		{
@@ -51,6 +62,15 @@ func main() {
 			leaderboards.GET("/batch/:batch_id/stats", leaderboardHandler.GetLeaderboardStats)
 			leaderboards.GET("/batch/:batch_id/rating-distribution", leaderboardHandler.GetRatingDistribution)
 			leaderboards.GET("/batch/:batch_id/streak-distribution", leaderboardHandler.GetStreakDistribution)
+		}
+
+		// Reward routes
+		rewards := api.Group("/rewards")
+		{
+			rewards.GET("/user/:user_id", rewardHandler.GetUserRewards)
+			rewards.GET("/reward/:reward_id", rewardHandler.GetRewardDetails)
+			rewards.GET("/available/:rating", rewardHandler.GetAvailableRewards)
+			rewards.GET("/progress/:user_id", rewardHandler.GetRewardProgress)
 		}
 	}
 
