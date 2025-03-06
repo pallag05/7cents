@@ -17,7 +17,7 @@ func main() {
 	groupService := services.NewGroupService(store)
 
 	// Initialize handlers
-	groupHandler := handlers.NewGroupHandler(groupService)
+	groupHandler := handlers.NewGroupHandler(groupService, store)
 
 	// Group routes
 	api := r.Group("/api")
@@ -25,6 +25,7 @@ func main() {
 		groups := api.Group("/groups")
 		{
 			groups.POST("", groupHandler.CreateGroup)
+			groups.GET("/search", groupHandler.SearchGroupsByTag)
 		}
 	}
 

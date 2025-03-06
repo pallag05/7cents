@@ -1,6 +1,11 @@
 package storage
 
-import "github.com/pallag05/7cents/models"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/pallag05/7cents/models"
+)
 
 type MemoryStore struct {
 	users  map[string]*models.User
@@ -8,10 +13,58 @@ type MemoryStore struct {
 }
 
 func NewMemoryStore() *MemoryStore {
-	return &MemoryStore{
+	store := &MemoryStore{
 		users:  make(map[string]*models.User),
 		groups: make(map[string]*models.Group),
 	}
+
+	// Add dummy groups
+	subjects := []string{"physics", "chemistry", "maths"}
+	for i, subject := range subjects {
+		group := &models.Group{
+			ID:            uuid.New().String(),
+			Title:         subject + " Study Group",
+			Description:   "A group for studying " + subject,
+			Members:       []string{},
+			Tag:           subject,
+			Type:          "study",
+			Private:       false,
+			Messages:      []models.Message{},
+			CreateBy:      uuid.New().String(),
+			Capacity:      10,
+			ActivityScore: 100 - (i * 25), // 100, 75, 50
+		}
+		store.groups[group.ID] = group
+	}
+
+	// Add one more physics group with different activity score
+	physicsGroup2 := &models.Group{
+		ID:            uuid.New().String(),
+		Title:         "Advanced Physics Group",
+		Description:   "Advanced physics study group",
+		Members:       []string{},
+		Tag:           "physics",
+		Type:          "study",
+		Private:       false,
+		Messages:      []models.Message{},
+		CreateBy:      uuid.New().String(),
+		Capacity:      10,
+		ActivityScore: 85,
+	}
+	store.groups[physicsGroup2.ID] = physicsGroup2
+
+	// Add some dummy messages to groups
+	for _, group := range store.groups {
+		message := models.Message{
+			ID:        uuid.New().String(),
+			Content:   "Welcome to " + group.Title,
+			SenderId:  group.CreateBy,
+			Timestamp: time.Now(),
+		}
+		group.Messages = append(group.Messages, message)
+	}
+
+	return store
 }
 
 // User operations
@@ -123,4 +176,14 @@ func (s *MemoryStore) AddMessageToGroup(groupID string, message *models.Message)
 
 	group.Messages = append(group.Messages, *message)
 	return s.UpdateGroup(group)
+}
+
+func (s *MemoryStore) SearchGroupsByTag(tag string) []*models.Group {
+	var matchingGroups []*models.Group
+	for _, group := range s.groups {
+		if group != nil && group.Tag == tag {
+			matchingGroups = append(matchingGroups, group)
+		}
+	}
+	return matchingGroups
 }
