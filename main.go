@@ -1,10 +1,11 @@
 package main
 
 import (
+	"allen_hackathon/handlers"
+	"allen_hackathon/services"
+	"allen_hackathon/storage"
+
 	"github.com/gin-gonic/gin"
-	"github.com/pallag05/7cents/handlers"
-	"github.com/pallag05/7cents/services"
-	"github.com/pallag05/7cents/storage"
 )
 
 func main() {
@@ -25,7 +26,10 @@ func main() {
 		groups := api.Group("/groups")
 		{
 			groups.POST("", groupHandler.CreateGroup)
-			groups.GET("/search", groupHandler.SearchGroupsByTag)
+			groups.GET("/user/:user_id", groupHandler.GetGroupsPage)
+			groups.GET("/:id", groupHandler.GetGroup)
+			groups.POST("/:id/join/:user_id", groupHandler.JoinGroup)
+			groups.POST("/search", groupHandler.SearchGroupsByTag)
 		}
 	}
 

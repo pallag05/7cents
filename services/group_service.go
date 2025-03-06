@@ -1,9 +1,11 @@
 package services
 
 import (
+	"allen_hackathon/models"
+	"allen_hackathon/storage"
+	"fmt"
+
 	"github.com/google/uuid"
-	"github.com/pallag05/7cents/models"
-	"github.com/pallag05/7cents/storage"
 )
 
 type GroupService struct {
@@ -26,4 +28,127 @@ func (s *GroupService) CreateGroup(group *models.Group) error {
 
 	// Store the group
 	return s.store.CreateGroup(group)
+}
+
+func (s *GroupService) GetGroupsPage(userID string) (*models.GroupsPageResponse, error) {
+	// Get user's group data
+	userGroup, err := s.store.GetUserGroup(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// If user has no group data yet, return empty response
+	if userGroup == nil {
+		return &models.GroupsPageResponse{
+			SystemRecommendedGroups: []models.Group{},
+			UserActiveGroups:        []models.Group{},
+		}, nil
+	}
+
+	// Get active groups
+	activeGroups, err := s.store.GetGroupsByIDs(userGroup.ActiveGroups)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get recommended groups
+	recommendedGroups, err := s.store.GetGroupsByIDs(userGroup.RecommendedGroups)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert []*models.Group to []models.Group
+	activeGroupsList := make([]models.Group, len(activeGroups))
+	for i, group := range activeGroups {
+		activeGroupsList[i] = *group
+	}
+
+	recommendedGroupsList := make([]models.Group, len(recommendedGroups))
+	for i, group := range recommendedGroups {
+		recommendedGroupsList[i] = *group
+	}
+
+	return &models.GroupsPageResponse{
+		SystemRecommendedGroups: recommendedGroupsList,
+		UserActiveGroups:        activeGroupsList,
+	}, nil
+}
+
+func (s *GroupService) GetGroup(id string) (*models.Group, error) {
+	group, err := s.store.GetGroup(id)
+	if err != nil {
+		return nil, err
+	}
+	return group, nil
+}
+
+func (s *GroupService) JoinGroup(groupID string, userID string) error {
+	// Get the group
+	group, err := s.store.GetGroup(groupID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return fmt.Errorf("group not found")
+	}
+
+	// Check capacity
+	if len(group.Members) >= group.Capacity {
+		return fmt.Errorf("group has reached maximum capacity")
+	}
+
+	// Check if user is already a member
+	for _, memberID := range group.Members {
+		if memberID == userID {
+			return fmt.Errorf("user is already a member of this group")
+		}
+	}
+
+	// Add user to group members
+	if err := s.store.AddMemberToGroup(groupID, userID); err != nil {
+		return err
+	}
+
+	// Get user's group data
+	userGroup, err := s.store.GetUserGroup(userID)
+	if err != nil {
+		return err
+	}
+
+	// If user has no group data yet, create it
+	if userGroup == nil {
+		userGroup = &models.UserGroup{
+			ID:                uuid.New().String(),
+			UserID:            userID,
+			ActiveGroups:      []string{},
+			RecommendedGroups: []string{},
+		}
+	}
+
+	// Add group to user's active groups if not already present
+	isActive := false
+	for _, activeGroupID := range userGroup.ActiveGroups {
+		if activeGroupID == groupID {
+			isActive = true
+			break
+		}
+	}
+	if !isActive {
+		userGroup.ActiveGroups = append(userGroup.ActiveGroups, groupID)
+	}
+
+	// Remove from recommended groups if present
+	recommendedGroups := []string{}
+	for _, recGroupID := range userGroup.RecommendedGroups {
+		if recGroupID != groupID {
+			recommendedGroups = append(recommendedGroups, recGroupID)
+		}
+	}
+	userGroup.RecommendedGroups = recommendedGroups
+
+	// Save or update user group data
+	if userGroup.ID == "" {
+		return s.store.CreateUserGroup(userGroup)
+	}
+	return s.store.UpdateUserGroup(userGroup)
 }

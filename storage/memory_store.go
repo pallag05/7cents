@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -8,14 +9,16 @@ import (
 )
 
 type MemoryStore struct {
-	users  map[string]*models.User
-	groups map[string]*models.Group
+	users      map[string]*models.User
+	groups     map[string]*models.Group
+	userGroups map[string]*models.UserGroup
 }
 
 func NewMemoryStore() *MemoryStore {
 	store := &MemoryStore{
-		users:  make(map[string]*models.User),
-		groups: make(map[string]*models.Group),
+		users:      make(map[string]*models.User),
+		groups:     make(map[string]*models.Group),
+		userGroups: make(map[string]*models.UserGroup),
 	}
 
 	// Add dummy groups
@@ -178,6 +181,34 @@ func (s *MemoryStore) AddMessageToGroup(groupID string, message *models.Message)
 	return s.UpdateGroup(group)
 }
 
+// UserGroup operations
+func (s *MemoryStore) GetUserGroup(userID string) (*models.UserGroup, error) {
+	if userGroup, exists := s.userGroups[userID]; exists {
+		return userGroup, nil
+	}
+	return nil, nil
+}
+
+func (s *MemoryStore) CreateUserGroup(userGroup *models.UserGroup) error {
+	s.userGroups[userGroup.UserID] = userGroup
+	return nil
+}
+
+func (s *MemoryStore) UpdateUserGroup(userGroup *models.UserGroup) error {
+	s.userGroups[userGroup.UserID] = userGroup
+	return nil
+}
+
+func (s *MemoryStore) GetGroupsByIDs(groupIDs []string) ([]*models.Group, error) {
+	var groups []*models.Group
+	for _, id := range groupIDs {
+		if group, exists := s.groups[id]; exists {
+			groups = append(groups, group)
+		}
+	}
+	return groups, nil
+}
+
 func (s *MemoryStore) SearchGroupsByTag(tag string) []*models.Group {
 	var matchingGroups []*models.Group
 	for _, group := range s.groups {
@@ -185,5 +216,11 @@ func (s *MemoryStore) SearchGroupsByTag(tag string) []*models.Group {
 			matchingGroups = append(matchingGroups, group)
 		}
 	}
+
+	// Sort by activity score in descending order
+	sort.Slice(matchingGroups, func(i, j int) bool {
+		return matchingGroups[i].ActivityScore > matchingGroups[j].ActivityScore
+	})
+
 	return matchingGroups
 }
