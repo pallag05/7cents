@@ -1,7 +1,5 @@
 package models
 
-import "time"
-
 type StreakType string
 
 const (
@@ -14,8 +12,8 @@ type Streak struct {
 	ID                string     `json:"id" gorm:"primaryKey"`
 	Type              StreakType `json:"type"`
 	ThresholdDuration int        `json:"threshold_duration"` // in minutes
-	CreatedAt         time.Time  `json:"created_at"`
-	UpdatedAt         time.Time  `json:"updated_at"`
+	CreatedAt         string     `json:"created_at"`
+	UpdatedAt         string     `json:"updated_at"`
 }
 
 // StreakRequirement represents the requirements for maintaining a streak
