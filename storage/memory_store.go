@@ -123,8 +123,8 @@ func (s *MemoryStore) populateDummyData() {
 			UserID:            "user1",
 			StreakCount:       5,
 			CurrentStreakID:   "streak1",
-			CurrentRating:     "beginner",
-			MaxRating:         "beginner",
+			CurrentRating:     16.65, // 5 * 3.33 (base score)
+			MaxRating:         16.65, // 5 * 3.33 (base score)
 			LastStreakUpdated: time.Now(),
 			CreatedAt:         time.Now(),
 			UpdatedAt:         time.Now(),
@@ -133,8 +133,8 @@ func (s *MemoryStore) populateDummyData() {
 			UserID:            "user2",
 			StreakCount:       12,
 			CurrentStreakID:   "streak2",
-			CurrentRating:     "intermediate",
-			MaxRating:         "intermediate",
+			CurrentRating:     39.96, // 12 * 3.33 (base score)
+			MaxRating:         39.96, // 12 * 3.33 (base score)
 			LastStreakUpdated: time.Now(),
 			CreatedAt:         time.Now(),
 			UpdatedAt:         time.Now(),
@@ -143,8 +143,8 @@ func (s *MemoryStore) populateDummyData() {
 			UserID:            "user3",
 			StreakCount:       25,
 			CurrentStreakID:   "streak3",
-			CurrentRating:     "advanced",
-			MaxRating:         "advanced",
+			CurrentRating:     83.25, // 25 * 3.33 (base score)
+			MaxRating:         83.25, // 25 * 3.33 (base score)
 			LastStreakUpdated: time.Now(),
 			CreatedAt:         time.Now(),
 			UpdatedAt:         time.Now(),
