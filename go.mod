@@ -1,4 +1,4 @@
-module github.com/pallag05/7cents
+module allen_hackathon
 
 go 1.22
 

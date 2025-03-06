@@ -1,6 +1,6 @@
 package storage
 
-import "github.com/pallag05/7cents/models"
+import "allen_hackathon/models"
 
 type MemoryStore struct {
 	users      map[string]*models.User

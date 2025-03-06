@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/pallag05/7cents/models"
+	"allen_hackathon/models"
 )
 
 type Store interface {
