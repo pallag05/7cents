@@ -90,3 +90,43 @@ func (h *RewardHandler) GetRewardProgress(c *gin.Context) {
 
 	c.JSON(http.StatusOK, progress)
 }
+
+// GetUserRewardProgress handles the request to get user's reward progress
+func (h *RewardHandler) GetUserRewardProgress(c *gin.Context) {
+	userID := c.Param("user_id")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	progress, err := h.rewardService.GetUserRewardProgress(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, progress)
+}
+
+// CheckAndAwardRewards handles the request to check and award rewards to a user
+func (h *RewardHandler) CheckAndAwardRewards(c *gin.Context) {
+	userID := c.Query("user_id")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	currentRating := c.Query("rating")
+	if currentRating == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "rating is required"})
+		return
+	}
+
+	err := h.rewardService.CheckAndAwardRewards(userID, currentRating)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Rewards checked and awarded successfully"})
+}
