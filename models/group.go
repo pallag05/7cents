@@ -7,7 +7,7 @@ type Group struct {
 	Title         string    `json:"title"`
 	Description   string    `json:"description"`
 	Members       []string  `json:"members"`
-	Tag           string  	`json:"tag"`
+	Tag           string    `json:"tag"`
 	Type          string    `json:"type"`
 	Private       bool      `json:"private"`
 	Messages      []Message `json:"messages"`
