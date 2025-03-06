@@ -3,44 +3,33 @@ package main
 import (
 	"allen_hackathon/handlers"
 	"allen_hackathon/services"
-	"fmt"
+	"allen_hackathon/storage"
+	"log"
+	"os"
 
 	"github.com/gin-gonic/gin"
 )
 
-//TIP To run your code, right-click the code and select <b>Run</b>. Alternatively, click
-// the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.
-
 func main() {
-	//TIP Press <shortcut actionId="ShowIntentionActions"/> when your caret is at the underlined or highlighted text
-	// to see how GoLand suggests fixing it.
-
-	// Create a default gin router
-	router := gin.Default()
+	// Initialize storage
+	store := storage.GetStore()
 
 	// Initialize services
-	userService := services.NewUserService()
 	streakService := services.NewStreakService()
-	rewardService := services.NewRewardService()
-	freezeService := services.NewFreezeService()
 
 	// Initialize handlers
-	userHandler := handlers.NewUserHandler(userService)
 	streakHandler := handlers.NewStreakHandler(streakService)
-	leaderboardHandler := handlers.NewLeaderboardHandler(streakService)
-	rewardHandler := handlers.NewRewardHandler(rewardService)
-	freezeHandler := handlers.NewFreezeHandler(freezeService)
+
+	// Set up Gin router
+	router := gin.Default()
+
+	// Add middleware
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
 
 	// API routes
 	api := router.Group("/api")
 	{
-		// User routes
-		users := api.Group("/users")
-		{
-			users.POST("", userHandler.CreateUser)
-			users.GET("/:user_id", userHandler.GetUser)
-		}
-
 		// Streak routes
 		streaks := api.Group("/streaks")
 		{
@@ -48,43 +37,17 @@ func main() {
 			streaks.GET("/user/:user_id", streakHandler.GetUserStreakInfo)
 			streaks.GET("/info/:user_id", streakHandler.GetStreakInfo)
 		}
-
-		// Leaderboard routes
-		leaderboards := api.Group("/leaderboards")
-		{
-			leaderboards.GET("/batch/:batch_id", leaderboardHandler.GetBatchLeaderboard)
-			leaderboards.GET("/top", leaderboardHandler.GetTopPerformers)
-			leaderboards.GET("/batch/:batch_id/stats", leaderboardHandler.GetLeaderboardStats)
-			leaderboards.GET("/batch/:batch_id/rating-distribution", leaderboardHandler.GetRatingDistribution)
-			leaderboards.GET("/batch/:batch_id/streak-distribution", leaderboardHandler.GetStreakDistribution)
-			leaderboards.GET("/stats", leaderboardHandler.GetOverallLeaderboardStats)
-			leaderboards.GET("/distribution", leaderboardHandler.GetLeaderboardDistribution)
-		}
-
-		// Reward routes
-		rewards := api.Group("/rewards")
-		{
-			rewards.GET("/user/:user_id", rewardHandler.GetUserRewards)
-			rewards.GET("/reward/:reward_id", rewardHandler.GetRewardDetails)
-			rewards.GET("/available", rewardHandler.GetAvailableRewards)
-			rewards.GET("/available/:rating", rewardHandler.GetAvailableRewards)
-			rewards.GET("/progress/:user_id", rewardHandler.GetRewardProgress)
-			rewards.POST("/earn/:user_id/:reward_id", rewardHandler.EarnReward)
-		}
-
-		// Freeze routes
-		freezes := api.Group("/freezes")
-		{
-			freezes.POST("/streak", freezeHandler.FreezeStreak)
-			freezes.DELETE("/streak/:user_id", freezeHandler.UnfreezeStreak)
-			freezes.GET("/status/:user_id", freezeHandler.GetFreezeStatus)
-		}
 	}
 
-	// Start the server on port 96
-	fmt.Println("Server starting on http://localhost:96")
-	router.Run(":96")
-}
+	// Get port from environment variable or use default
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "96"
+	}
 
-//TIP See GoLand help at <a href="https://www.jetbrains.com/help/go/">jetbrains.com/help/go/</a>.
-// Also, you can try interactive lessons for GoLand by selecting 'Help | Learn IDE Features' from the main menu.
+	// Start server
+	log.Printf("Server starting on port %s...", port)
+	if err := router.Run(":" + port); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
+}
