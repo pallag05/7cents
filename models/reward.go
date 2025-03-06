@@ -53,3 +53,13 @@ type RewardProgress struct {
 	EarnedRewards    []Reward `json:"earned_rewards"`
 	LastUpdated      string   `json:"last_updated"`
 }
+
+// UserRewardProgress represents the user's reward progress
+type UserRewardProgress struct {
+	PreviousReward *Reward `json:"previous_reward"`
+	CurrentReward  *Reward `json:"current_reward"`
+	NextReward     *Reward `json:"next_reward"`
+	MaxRating      float64 `json:"max_rating"`
+	CurrentRating  float64 `json:"current_rating"`
+	ImageURL       string  `json:"image_url"`
+}
