@@ -3,10 +3,11 @@ package handlers
 import (
 	"net/http"
 
+	"allen_hackathon/models"
+	"allen_hackathon/services"
+	"allen_hackathon/storage"
+
 	"github.com/gin-gonic/gin"
-	"github.com/pallag05/7cents/models"
-	"github.com/pallag05/7cents/services"
-	"github.com/pallag05/7cents/storage"
 )
 
 type GroupHandler struct {

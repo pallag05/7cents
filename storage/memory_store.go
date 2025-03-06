@@ -4,8 +4,9 @@ import (
 	"sort"
 	"time"
 
+	"allen_hackathon/models"
+
 	"github.com/google/uuid"
-	"github.com/pallag05/7cents/models"
 )
 
 type MemoryStore struct {
