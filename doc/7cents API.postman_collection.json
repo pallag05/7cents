@@ -1,0 +1,224 @@
+{
+	"info": {
+		"_postman_id": "2c34ac68-f37f-4b3b-b60a-3ea797f69b5e",
+		"name": "7cents API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "37380073"
+	},
+	"item": [
+		{
+			"name": "Create Group",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"Physics Study Group\",\n    \"description\": \"A group for studying physics\",\n    \"tag\": \"physics\",\n    \"type\": \"study\",\n    \"private\": false,\n    \"createBy\": \"user1\",\n    \"capacity\": 10\n}"
+				},
+				"url": {
+					"raw": "http://localhost:96/api/groups",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "96",
+					"path": [
+						"api",
+						"groups"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get User's Groups",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:96/api/groups/user/:user_id",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "96",
+					"path": [
+						"api",
+						"groups",
+						"user",
+						":user_id"
+					],
+					"variable": [
+						{
+							"key": "user_id",
+							"value": "user1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Group by ID",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:96/api/groups/767ae1e2-fbff-45b2-8e53-3cb686b357a5",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "96",
+					"path": [
+						"api",
+						"groups",
+						"767ae1e2-fbff-45b2-8e53-3cb686b357a5"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Join Group",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:96/api/groups/a6b5c729-118f-406c-ae07-5f1c21f73a94/join/user1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "96",
+					"path": [
+						"api",
+						"groups",
+						"a6b5c729-118f-406c-ae07-5f1c21f73a94",
+						"join",
+						"user1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Leave Group",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:96/api/groups/a6b5c729-118f-406c-ae07-5f1c21f73a94/leave/user2",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "96",
+					"path": [
+						"api",
+						"groups",
+						"a6b5c729-118f-406c-ae07-5f1c21f73a94",
+						"leave",
+						"user2"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Group (Add Message)",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"message\": {\n        \"content\": \"Hello, welcome to the group!\",\n        \"sender_id\": \"user1\",\n        \"timestamp\": \"2025-03-07T12:00:00Z\"\n    }\n}"
+				},
+				"url": {
+					"raw": "http://localhost:96/api/groups/a6b5c729-118f-406c-ae07-5f1c21f73a94",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "96",
+					"path": [
+						"api",
+						"groups",
+						"a6b5c729-118f-406c-ae07-5f1c21f73a94"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Group (Add Action)",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"action\": {\n        \"type\": \"CALL\",\n        \"content\": \"12:00pm - 1:00pm\",\n        \"timestamp\": \"2025-03-07T12:00:00Z\"\n    }\n}"
+				},
+				"url": {
+					"raw": "http://localhost:96/api/groups/a6b5c729-118f-406c-ae07-5f1c21f73a94",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "96",
+					"path": [
+						"api",
+						"groups",
+						"a6b5c729-118f-406c-ae07-5f1c21f73a94"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Search Groups by Tag",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n                        \"tag\": \"physics\"\n                    }"
+				},
+				"url": {
+					"raw": "http://localhost:96/api/groups/search",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "96",
+					"path": [
+						"api",
+						"groups",
+						"search"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
