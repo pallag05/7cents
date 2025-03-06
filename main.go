@@ -30,6 +30,7 @@ func main() {
 			groups.GET("/:id", groupHandler.GetGroup)
 			groups.POST("/:id/join/:user_id", groupHandler.JoinGroup)
 			groups.PUT("/:id", groupHandler.UpdateGroup)
+			groups.POST("/:id/leave/:user_id", groupHandler.LeaveGroup)
 			groups.POST("/search", groupHandler.SearchGroupsByTag)
 		}
 	}
