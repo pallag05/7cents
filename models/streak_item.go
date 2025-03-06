@@ -1,7 +1,5 @@
 package models
 
-import "time"
-
 type StreakItemType string
 
 const (
@@ -14,6 +12,6 @@ type StreakItem struct {
 	ID        string         `json:"id" gorm:"primaryKey"`
 	Type      StreakItemType `json:"type"`
 	StreakID  string         `json:"streak_id"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
+	CreatedAt string         `json:"created_at"`
+	UpdatedAt string         `json:"updated_at"`
 }

@@ -3,16 +3,18 @@ package services
 import (
 	"allen_hackathon/models"
 	"allen_hackathon/storage"
-	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 )
 
+// FreezeService handles streak freeze operations
 type FreezeService struct {
 	store *storage.MemoryStore
 }
 
+// NewFreezeService creates a new freeze service
 func NewFreezeService() *FreezeService {
 	return &FreezeService{
 		store: storage.GetStore(),
@@ -21,54 +23,52 @@ func NewFreezeService() *FreezeService {
 
 // FreezeStreak freezes a user's streak for a specified duration
 func (s *FreezeService) FreezeStreak(userID string, durationDays int) error {
-	// Get user's streak info
 	streakToUser, exists := s.store.GetStreakToUser(userID)
 	if !exists {
-		return errors.New("user streak not found")
+		return fmt.Errorf("user streak not found")
 	}
 
 	// Get freeze configuration
 	freezeConfig, exists := s.store.GetFreezeConfig()
 	if !exists {
-		return errors.New("freeze configuration not found")
+		return fmt.Errorf("freeze configuration not found")
 	}
 
-	// Validate streak count requirement
-	if streakToUser.StreakCount < freezeConfig.MinStreakCount {
-		return errors.New("insufficient streak count to use freeze")
-	}
-
-	// Validate maximum freezes
+	// Check if user has already used maximum freezes
 	if streakToUser.FreezesUsed >= freezeConfig.MaxFreezes {
-		return errors.New("maximum number of freezes reached")
+		return fmt.Errorf("maximum number of freezes used")
 	}
 
-	// Validate duration
+	// Check if user has minimum required streak count
+	if streakToUser.StreakCount < freezeConfig.MinStreakCount {
+		return fmt.Errorf("insufficient streak count")
+	}
+
+	// Check if duration is within allowed range
 	if durationDays > freezeConfig.MaxDurationDays {
-		return errors.New("freeze duration exceeds maximum allowed")
+		return fmt.Errorf("freeze duration exceeds maximum allowed")
 	}
 
-	// Check if streak is already frozen
-	if streakToUser.IsFrozen {
-		return errors.New("streak is already frozen")
-	}
+	now := time.Now()
+	endTime := now.AddDate(0, 0, durationDays)
 
 	// Create freeze record
 	freeze := &models.UserFreeze{
-		ID:          uuid.New().String(),
-		UserID:      userID,
-		StartTime:   time.Now(),
-		EndTime:     time.Now().AddDate(0, 0, durationDays),
-		FreezeCount: streakToUser.FreezesUsed + 1,
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		StartTime: now.Format(time.RFC3339),
+		EndTime:   endTime.Format(time.RFC3339),
+		CreatedAt: now.Format(time.RFC3339),
+		UpdatedAt: now.Format(time.RFC3339),
 	}
 
-	// Update streak info
+	// Update streak to user
 	streakToUser.IsFrozen = true
-	streakToUser.FreezeEndTime = freeze.EndTime
+	streakToUser.FreezeEndTime = endTime.Format(time.RFC3339)
+	streakToUser.LastFreezeUsed = now.Format(time.RFC3339)
 	streakToUser.FreezesUsed++
-	streakToUser.LastFreezeUsed = time.Now()
+	streakToUser.UpdatedAt = now.Format(time.RFC3339)
 
-	// Save changes
 	s.store.SaveUserFreeze(freeze)
 	s.store.SaveStreakToUser(streakToUser)
 
@@ -79,38 +79,44 @@ func (s *FreezeService) FreezeStreak(userID string, durationDays int) error {
 func (s *FreezeService) UnfreezeStreak(userID string) error {
 	streakToUser, exists := s.store.GetStreakToUser(userID)
 	if !exists {
-		return errors.New("user streak not found")
+		return fmt.Errorf("user streak not found")
 	}
 
 	if !streakToUser.IsFrozen {
-		return errors.New("streak is not frozen")
+		return fmt.Errorf("streak is not frozen")
 	}
 
-	// Update streak info
-	streakToUser.IsFrozen = false
-	streakToUser.FreezeEndTime = time.Time{} // Reset freeze end time
+	// Check if freeze has expired
+	endTime, err := time.Parse(time.RFC3339, streakToUser.FreezeEndTime)
+	if err != nil {
+		return fmt.Errorf("invalid freeze end time")
+	}
 
-	// Save changes
-	s.store.SaveStreakToUser(streakToUser)
+	if time.Now().After(endTime) {
+		streakToUser.IsFrozen = false
+		streakToUser.FreezeEndTime = ""
+		streakToUser.UpdatedAt = time.Now().Format(time.RFC3339)
+		s.store.SaveStreakToUser(streakToUser)
+		return nil
+	}
 
-	return nil
+	return fmt.Errorf("freeze has not expired yet")
 }
 
 // GetFreezeStatus returns the current freeze status for a user
 func (s *FreezeService) GetFreezeStatus(userID string) (*models.UserFreeze, error) {
 	streakToUser, exists := s.store.GetStreakToUser(userID)
 	if !exists {
-		return nil, errors.New("user streak not found")
+		return nil, fmt.Errorf("user streak not found")
 	}
 
 	if !streakToUser.IsFrozen {
 		return nil, nil
 	}
 
-	// Get the active freeze record
 	freeze, exists := s.store.GetActiveUserFreeze(userID)
 	if !exists {
-		return nil, errors.New("active freeze record not found")
+		return nil, fmt.Errorf("active freeze not found")
 	}
 
 	return freeze, nil
@@ -121,7 +127,8 @@ func (s *FreezeService) CheckAndAutoUnfreeze() error {
 	// Get all frozen streaks
 	frozenStreaks := s.store.GetAllFrozenStreaks()
 	for _, streak := range frozenStreaks {
-		if time.Now().After(streak.FreezeEndTime) {
+		freezeEndTime, _ := time.Parse(time.RFC3339, streak.FreezeEndTime)
+		if time.Now().After(freezeEndTime) {
 			if err := s.UnfreezeStreak(streak.UserID); err != nil {
 				// Log error but continue with other streaks
 				continue

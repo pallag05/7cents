@@ -3,21 +3,24 @@ package handlers
 import (
 	"allen_hackathon/services"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
+// RewardHandler handles reward-related HTTP requests
 type RewardHandler struct {
 	rewardService *services.RewardService
 }
 
+// NewRewardHandler creates a new reward handler
 func NewRewardHandler(rewardService *services.RewardService) *RewardHandler {
 	return &RewardHandler{
 		rewardService: rewardService,
 	}
 }
 
-// GetUserRewards returns all rewards earned by a user
+// GetUserRewards handles requests to get all rewards earned by a user
 func (h *RewardHandler) GetUserRewards(c *gin.Context) {
 	userID := c.Param("user_id")
 	if userID == "" {
@@ -34,7 +37,7 @@ func (h *RewardHandler) GetUserRewards(c *gin.Context) {
 	c.JSON(http.StatusOK, rewards)
 }
 
-// GetRewardDetails returns detailed information about a specific reward
+// GetRewardDetails handles requests to get details of a specific reward
 func (h *RewardHandler) GetRewardDetails(c *gin.Context) {
 	rewardID := c.Param("reward_id")
 	if rewardID == "" {
@@ -51,11 +54,27 @@ func (h *RewardHandler) GetRewardDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, reward)
 }
 
-// GetAvailableRewards returns all rewards available for a specific rating level
+// GetAvailableRewards returns all rewards available for a user's rating
 func (h *RewardHandler) GetAvailableRewards(c *gin.Context) {
-	rating := c.Param("rating")
-	if rating == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "rating is required"})
+	var rating float64
+	var err error
+
+	// Try to get rating from URL parameter first
+	ratingStr := c.Param("rating")
+	if ratingStr != "" {
+		rating, err = strconv.ParseFloat(ratingStr, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid rating parameter"})
+			return
+		}
+	} else {
+		// If no rating provided, get all rewards
+		rewards, err := h.rewardService.GetAllRewards()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, rewards)
 		return
 	}
 
@@ -64,11 +83,10 @@ func (h *RewardHandler) GetAvailableRewards(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, rewards)
 }
 
-// GetRewardProgress returns information about a user's progress towards earning rewards
+// GetRewardProgress handles requests to get a user's progress towards earning rewards
 func (h *RewardHandler) GetRewardProgress(c *gin.Context) {
 	userID := c.Param("user_id")
 	if userID == "" {
@@ -76,13 +94,7 @@ func (h *RewardHandler) GetRewardProgress(c *gin.Context) {
 		return
 	}
 
-	rating := c.Query("rating")
-	if rating == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "rating is required"})
-		return
-	}
-
-	progress, err := h.rewardService.GetRewardProgress(userID, rating)
+	progress, err := h.rewardService.GetRewardProgress(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -91,42 +103,22 @@ func (h *RewardHandler) GetRewardProgress(c *gin.Context) {
 	c.JSON(http.StatusOK, progress)
 }
 
-// GetUserRewardProgress handles the request to get user's reward progress
-func (h *RewardHandler) GetUserRewardProgress(c *gin.Context) {
-	userID := c.Param("user_id")
-	if userID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+// EarnReward handles requests to mark a reward as earned by a user
+func (h *RewardHandler) EarnReward(c *gin.Context) {
+	var req struct {
+		UserID   string `json:"user_id" binding:"required"`
+		RewardID string `json:"reward_id" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	progress, err := h.rewardService.GetUserRewardProgress(userID)
-	if err != nil {
+	if err := h.rewardService.EarnReward(req.UserID, req.RewardID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, progress)
-}
-
-// CheckAndAwardRewards handles the request to check and award rewards to a user
-func (h *RewardHandler) CheckAndAwardRewards(c *gin.Context) {
-	userID := c.Query("user_id")
-	if userID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
-		return
-	}
-
-	currentRating := c.Query("rating")
-	if currentRating == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "rating is required"})
-		return
-	}
-
-	err := h.rewardService.CheckAndAwardRewards(userID, currentRating)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Rewards checked and awarded successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "reward earned successfully"})
 }
