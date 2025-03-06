@@ -1,53 +1,32 @@
 package main
 
 import (
-	"allen_hackathon/handlers"
-	"allen_hackathon/services"
-	"allen_hackathon/storage"
-	"log"
-	"os"
-
 	"github.com/gin-gonic/gin"
+	"github.com/pallag05/7cents/handlers"
+	"github.com/pallag05/7cents/services"
+	"github.com/pallag05/7cents/storage"
 )
 
 func main() {
-	// Initialize storage
-	store := storage.GetStore()
+	r := gin.Default()
+
+	// Initialize store
+	store := storage.NewMemoryStore()
 
 	// Initialize services
-	streakService := services.NewStreakService()
+	groupService := services.NewGroupService(store)
 
 	// Initialize handlers
-	streakHandler := handlers.NewStreakHandler(streakService)
+	groupHandler := handlers.NewGroupHandler(groupService)
 
-	// Set up Gin router
-	router := gin.Default()
-
-	// Add middleware
-	router.Use(gin.Logger())
-	router.Use(gin.Recovery())
-
-	// API routes
-	api := router.Group("/api")
+	// Group routes
+	api := r.Group("/api")
 	{
-		// Streak routes
-		streaks := api.Group("/streaks")
+		groups := api.Group("/groups")
 		{
-			streaks.POST("/activity", streakHandler.RecordActivity)
-			streaks.GET("/user/:user_id", streakHandler.GetUserStreakInfo)
-			streaks.GET("/info/:user_id", streakHandler.GetStreakInfo)
+			groups.POST("", groupHandler.CreateGroup)
 		}
 	}
 
-	// Get port from environment variable or use default
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "96"
-	}
-
-	// Start server
-	log.Printf("Server starting on port %s...", port)
-	if err := router.Run(":" + port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	}
+	r.Run(":8080")
 }
