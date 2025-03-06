@@ -31,7 +31,7 @@ func (h *StreakHandler) RecordActivity(c *gin.Context) {
 		return
 	}
 
-	err := h.streakService.RecordActivity(request.UserID, string(request.ActivityType))
+	err := h.streakService.RecordActivity(request.UserID, request.ActivityType)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -108,17 +108,13 @@ func (h *StreakHandler) GetStreakInfo(c *gin.Context) {
 	nextMilestone := calculateNextMilestone(streakToUser.StreakCount)
 	progressToNext := calculateProgressToNext(streakToUser.StreakCount, nextMilestone)
 
-	// Parse timestamps
-	lastUpdated, _ := time.Parse(time.RFC3339, streakToUser.LastStreakUpdated)
-	freezeEndTime, _ := time.Parse(time.RFC3339, streakToUser.FreezeEndTime)
-
 	response := StreakInfoResponse{
 		UserID:             userID,
 		CurrentStreakType:  streak.Type,
 		CurrentStreakCount: streakToUser.StreakCount,
-		LastStreakUpdated:  lastUpdated,
+		LastStreakUpdated:  streakToUser.LastStreakUpdated,
 		IsFrozen:           streakToUser.IsFrozen,
-		FreezeEndTime:      freezeEndTime,
+		FreezeEndTime:      streakToUser.FreezeEndTime,
 		FreezesUsed:        streakToUser.FreezesUsed,
 		MaxFreezesAllowed:  freezeConfig.MaxFreezes,
 		Requirements:       requirements,

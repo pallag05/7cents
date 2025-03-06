@@ -5,7 +5,6 @@ import (
 	"allen_hackathon/storage"
 	"errors"
 	"fmt"
-	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -24,7 +23,7 @@ type RatingBreakdown struct {
 	TypeMultiplier      float64 `json:"type_multiplier"`
 	PenaltyPoints       float64 `json:"penalty_points"`
 	FinalScore          float64 `json:"final_score"`
-	CurrentRating       float64 `json:"current_rating"`
+	CurrentRating       string  `json:"current_rating"`
 	StreakCount         int     `json:"streak_count"`
 	StreakType          string  `json:"streak_type"`
 	LastStreakUpdated   string  `json:"last_streak_updated"`
@@ -100,57 +99,23 @@ type StreakDistribution struct {
 	LastUpdated    string `json:"last_updated"`
 }
 
-// LeaderboardDistribution represents the distribution of ratings and streaks
-type LeaderboardDistribution struct {
-	RatingDistribution map[string]int     `json:"rating_distribution"`
-	StreakDistribution map[string]int     `json:"streak_distribution"`
-	RatingPercentiles  map[string]float64 `json:"rating_percentiles"`
-	StreakPercentiles  map[string]float64 `json:"streak_percentiles"`
-}
-
 func NewStreakService() *StreakService {
 	return &StreakService{
 		store: storage.GetStore(),
 	}
 }
 
-// CalculateUserRating calculates a user's rating based on their streak and activity
-func (s *StreakService) CalculateUserRating(userID string) (float64, error) {
-	streakToUser, exists := s.store.GetStreakToUser(userID)
-	if !exists {
-		return 0, errors.New("user not found")
+// CalculateUserRating calculates the user's rating based on their streak performance
+func (s *StreakService) CalculateUserRating(userID string) (string, error) {
+	breakdown, err := s.GetRatingBreakdown(userID)
+	if err != nil {
+		return "", err
 	}
 
-	streak, exists := s.store.GetStreak(streakToUser.CurrentStreakID)
-	if !exists {
-		return 0, errors.New("streak not found")
-	}
-
-	// Calculate base score
-	baseScore := calculateBaseScore(streakToUser.StreakCount)
-
-	// Calculate multipliers
-	streakMultiplier := calculateStreakMultiplier(streakToUser.StreakCount)
-	typeMultiplier := calculateTypeMultiplier(streak.Type)
-
-	// Calculate penalty points
-	penaltyPoints := calculatePenaltyPoints(streakToUser.LastStreakUpdated)
-
-	// Calculate final score
-	finalScore := (baseScore * streakMultiplier * typeMultiplier) - penaltyPoints
-
-	// Ensure final score is within bounds
-	if finalScore < 0 {
-		finalScore = 0
-	}
-	if finalScore > 100 {
-		finalScore = 100
-	}
-
-	return finalScore, nil
+	return breakdown.CurrentRating, nil
 }
 
-// GetRatingBreakdown returns detailed information about a user's rating calculation
+// GetRatingBreakdown provides detailed information about the rating calculation
 func (s *StreakService) GetRatingBreakdown(userID string) (*RatingBreakdown, error) {
 	streakToUser, exists := s.store.GetStreakToUser(userID)
 	if !exists {
@@ -162,14 +127,16 @@ func (s *StreakService) GetRatingBreakdown(userID string) (*RatingBreakdown, err
 		return nil, errors.New("streak not found")
 	}
 
-	// Calculate base score
+	// Calculate base score (0-100)
 	baseScore := calculateBaseScore(streakToUser.StreakCount)
 
-	// Calculate multipliers
+	// Calculate streak multiplier (1.0-2.0)
 	streakMultiplier := calculateStreakMultiplier(streakToUser.StreakCount)
+
+	// Calculate type multiplier based on streak type
 	typeMultiplier := calculateTypeMultiplier(streak.Type)
 
-	// Calculate penalty points
+	// Calculate penalty points for missed streaks
 	penaltyPoints := calculatePenaltyPoints(streakToUser.LastStreakUpdated)
 
 	// Calculate final score
@@ -183,12 +150,14 @@ func (s *StreakService) GetRatingBreakdown(userID string) (*RatingBreakdown, err
 		finalScore = 100
 	}
 
+	// Calculate current rating based on final score
+	currentRating := calculateRatingFromScore(finalScore)
+
 	// Calculate days since last streak
-	lastStreakUpdated, err := time.Parse(time.RFC3339, streakToUser.LastStreakUpdated)
-	if err != nil {
-		return nil, fmt.Errorf("invalid last streak updated time: %v", err)
-	}
-	daysSinceLastStreak := int(time.Since(lastStreakUpdated).Hours() / 24)
+	daysSinceLastStreak := int(time.Since(streakToUser.LastStreakUpdated).Hours() / 24)
+
+	// Convert rating to string for display
+	ratingString := getRatingString(currentRating)
 
 	return &RatingBreakdown{
 		BaseScore:           baseScore,
@@ -196,10 +165,10 @@ func (s *StreakService) GetRatingBreakdown(userID string) (*RatingBreakdown, err
 		TypeMultiplier:      typeMultiplier,
 		PenaltyPoints:       penaltyPoints,
 		FinalScore:          finalScore,
-		CurrentRating:       finalScore,
+		CurrentRating:       ratingString,
 		StreakCount:         streakToUser.StreakCount,
 		StreakType:          string(streak.Type),
-		LastStreakUpdated:   streakToUser.LastStreakUpdated,
+		LastStreakUpdated:   streakToUser.LastStreakUpdated.Format(time.RFC3339),
 		DaysSinceLastStreak: daysSinceLastStreak,
 	}, nil
 }
@@ -240,13 +209,8 @@ func calculateTypeMultiplier(streakType models.StreakType) float64 {
 	}
 }
 
-func calculatePenaltyPoints(lastStreakUpdated string) float64 {
-	lastUpdated, err := time.Parse(time.RFC3339, lastStreakUpdated)
-	if err != nil {
-		return 0
-	}
-
-	daysSinceLastStreak := time.Since(lastUpdated).Hours() / 24
+func calculatePenaltyPoints(lastStreakUpdated time.Time) float64 {
+	daysSinceLastStreak := time.Since(lastStreakUpdated).Hours() / 24
 	if daysSinceLastStreak <= 1 {
 		return 0
 	}
@@ -259,141 +223,119 @@ func calculatePenaltyPoints(lastStreakUpdated string) float64 {
 	return penalty
 }
 
-// getAppropriateStreak returns the appropriate streak type based on streak count
-func (s *StreakService) getAppropriateStreak(streakCount int) *models.Streak {
-	var streakType models.StreakType
+func calculateRatingFromScore(score float64) int {
 	switch {
-	case streakCount >= 30:
-		streakType = models.StreakTypeAdvanced
-	case streakCount >= 15:
-		streakType = models.StreakTypeIntermediate
+	case score >= 90:
+		return 5 // expert
+	case score >= 75:
+		return 4 // advanced
+	case score >= 50:
+		return 3 // intermediate
+	case score >= 25:
+		return 2 // beginner
 	default:
-		streakType = models.StreakTypeBeginner
-	}
-
-	// Find or create streak with the appropriate type
-	for _, streak := range s.store.GetAllStreaks() {
-		if streak.Type == streakType {
-			return streak
-		}
-	}
-
-	// Create new streak if not found
-	streak := &models.Streak{
-		ID:                uuid.New().String(),
-		Type:              streakType,
-		ThresholdDuration: getThresholdDuration(streakType),
-		CreatedAt:         time.Now().Format(time.RFC3339),
-		UpdatedAt:         time.Now().Format(time.RFC3339),
-	}
-	s.store.SaveStreak(streak)
-	return streak
-}
-
-// getThresholdDuration returns the threshold duration for a streak type
-func getThresholdDuration(streakType models.StreakType) int {
-	switch streakType {
-	case models.StreakTypeBeginner:
-		return 30
-	case models.StreakTypeIntermediate:
-		return 45
-	case models.StreakTypeAdvanced:
-		return 60
-	default:
-		return 30
+		return 1 // novice
 	}
 }
 
-// RecordActivity records a user's activity and updates their streak
-func (s *StreakService) RecordActivity(userID string, activityType string) error {
-	streakToUser, exists := s.store.GetStreakToUser(userID)
-	if !exists {
-		return errors.New("user not found")
+// Helper function to convert rating integer to string
+func getRatingString(rating int) string {
+	switch rating {
+	case 5:
+		return "expert"
+	case 4:
+		return "advanced"
+	case 3:
+		return "intermediate"
+	case 2:
+		return "beginner"
+	default:
+		return "novice"
 	}
+}
 
-	// Check if streak is frozen
-	if streakToUser.IsFrozen {
-		freezeEndTime, err := time.Parse(time.RFC3339, streakToUser.FreezeEndTime)
-		if err != nil {
-			return fmt.Errorf("invalid freeze end time: %v", err)
-		}
-
-		if time.Now().After(freezeEndTime) {
-			streakToUser.IsFrozen = false
-			streakToUser.FreezeEndTime = ""
-			streakToUser.UpdatedAt = time.Now().Format(time.RFC3339)
-			s.store.SaveStreakToUser(streakToUser)
-		} else {
-			return errors.New("streak is frozen")
-		}
-	}
-
-	// Check if activity is on the same day as last streak
-	lastStreakUpdated, err := time.Parse(time.RFC3339, streakToUser.LastStreakUpdated)
+// RecordActivity records a learning activity and updates the user's streak
+func (s *StreakService) RecordActivity(userID string, activityType models.StreakItemType) error {
+	// 1. Get user's current streak info
+	streakToUser, err := s.getUserStreak(userID)
 	if err != nil {
-		return fmt.Errorf("invalid last streak updated time: %v", err)
+		return err
 	}
 
-	if !isSameDay(lastStreakUpdated, time.Now()) {
-		// Check if streak should be broken
+	// 2. Check if streak is frozen
+	if streakToUser.IsFrozen {
+		// If freeze has expired, unfreeze the streak
+		if time.Now().After(streakToUser.FreezeEndTime) {
+			freezeService := NewFreezeService()
+			if err := freezeService.UnfreezeStreak(userID); err != nil {
+				return err
+			}
+			streakToUser.IsFrozen = false
+			streakToUser.FreezeEndTime = time.Time{}
+		} else {
+			// Streak is still frozen, don't update it
+			return nil
+		}
+	}
+
+	// 3. Check if the activity is within the same day
+	if !isSameDay(streakToUser.LastStreakUpdated, time.Now()) {
+		// 4. Check if streak should be broken
 		if shouldBreakStreak(streakToUser.LastStreakUpdated) {
 			streakToUser.StreakCount = 0
 			streakToUser.CurrentStreakID = ""
-			streakToUser.CurrentRating = 0
-			streakToUser.MaxRating = 0
-			streakToUser.LastStreakUpdated = time.Now().Format(time.RFC3339)
-			streakToUser.UpdatedAt = time.Now().Format(time.RFC3339)
-			s.store.SaveStreakToUser(streakToUser)
-			return nil
 		}
+	}
 
-		// Update streak count and get appropriate streak type
-		streakToUser.StreakCount++
-		streak := s.getAppropriateStreak(streakToUser.StreakCount)
-		if streak == nil {
-			return errors.New("no appropriate streak found")
-		}
+	// 5. Get or create streak based on user's level
+	streak, err := s.getOrCreateStreak(userID)
+	if err != nil {
+		return err
+	}
 
-		streakToUser.CurrentStreakID = streak.ID
-		streakToUser.LastStreakUpdated = time.Now().Format(time.RFC3339)
-		streakToUser.UpdatedAt = time.Now().Format(time.RFC3339)
+	// 6. Create streak item
+	streakItem := &models.StreakItem{
+		ID:       generateID(),
+		Type:     activityType,
+		StreakID: streak.ID,
+	}
 
-		// Calculate and update rating
-		rating, err := s.CalculateUserRating(userID)
+	// 7. Update streak count and last updated time
+	streakToUser.StreakCount++
+	streakToUser.CurrentStreakID = streak.ID
+	streakToUser.LastStreakUpdated = time.Now()
+
+	// 8. Update user's rating if needed
+	oldRating := streakToUser.CurrentRating
+	if shouldUpdateRating(streakToUser) {
+		// Calculate new score
+		breakdown, err := s.GetRatingBreakdown(userID)
 		if err != nil {
 			return err
 		}
 
-		streakToUser.CurrentRating = rating
-		if rating > streakToUser.MaxRating {
-			streakToUser.MaxRating = rating
+		// Update current rating with the actual final score
+		streakToUser.CurrentRating = breakdown.FinalScore
+
+		// Update max rating if new score is higher
+		if breakdown.FinalScore > streakToUser.MaxRating {
+			streakToUser.MaxRating = breakdown.FinalScore
 		}
 
-		s.store.SaveStreakToUser(streakToUser)
-
-		// Check and award rewards based on the new rating
-		rewardService := NewRewardService()
-		if err := rewardService.CheckAndAwardRewards(userID, rating); err != nil {
-			// Log the error but don't fail the streak update
-			fmt.Printf("Error checking rewards: %v\n", err)
+		// 9. Check for rewards if rating has changed
+		if oldRating != streakToUser.CurrentRating {
+			rewardService := NewRewardService()
+			// Convert score to rating level for reward checking
+			ratingLevel := calculateRatingFromScore(breakdown.FinalScore)
+			if err := rewardService.CheckAndAwardRewards(userID, getRatingString(ratingLevel)); err != nil {
+				// Log the error but don't fail the activity recording
+				fmt.Printf("Error checking rewards: %v\n", err)
+			}
 		}
 	}
 
-	return nil
-}
-
-// Helper function to check if two times are on the same day
-func isSameDay(t1, t2 time.Time) bool {
-	return t1.Year() == t2.Year() && t1.Month() == t2.Month() && t1.Day() == t2.Day()
-}
-
-// Helper function to check if streak should be broken
-func shouldBreakStreak(lastUpdated string) bool {
-	lastUpdatedTime, err := time.Parse(time.RFC3339, lastUpdated)
-	if err != nil {
-		return false
-	}
-	return time.Since(lastUpdatedTime) > 24*time.Hour
+	// 10. Save all changes
+	return s.saveChanges(streakToUser, streakItem)
 }
 
 // GetUserStreakInfo returns the user's current streak information
@@ -412,14 +354,52 @@ func (s *StreakService) getUserStreak(userID string) (*models.StreakToUser, erro
 			CurrentStreakID:   "",
 			CurrentRating:     1, // novice
 			MaxRating:         1, // novice
-			LastStreakUpdated: time.Now().Format(time.RFC3339),
+			LastStreakUpdated: time.Now(),
 		}
 		s.store.SaveStreakToUser(streakToUser)
 	}
 	return streakToUser, nil
 }
 
+func (s *StreakService) getOrCreateStreak(userID string) (*models.Streak, error) {
+	streak, exists := s.store.GetStreak(userID)
+	if !exists {
+		// Create new streak with default settings
+		streak = &models.Streak{
+			ID:                generateID(),
+			Type:              models.StreakTypeBeginner,
+			ThresholdDuration: 30, // 30 minutes default
+		}
+		s.store.SaveStreak(streak)
+	}
+	return streak, nil
+}
 
+func (s *StreakService) saveChanges(streakToUser *models.StreakToUser, streakItem *models.StreakItem) error {
+	// Save streak item
+	s.store.SaveStreakItem(streakItem)
+
+	// Update streak to user
+	s.store.SaveStreakToUser(streakToUser)
+
+	return nil
+}
+
+func isSameDay(t1, t2 time.Time) bool {
+	return t1.Year() == t2.Year() && t1.Month() == t2.Month() && t1.Day() == t2.Day()
+}
+
+func shouldBreakStreak(lastUpdated time.Time) bool {
+	return time.Since(lastUpdated) > 24*time.Hour
+}
+
+func shouldUpdateRating(streakToUser *models.StreakToUser) bool {
+	return streakToUser.StreakCount%5 == 0
+}
+
+func generateID() string {
+	return uuid.New().String()
+}
 
 // GetBatchLeaderboard returns the leaderboard for a specific batch/class
 func (s *StreakService) GetBatchLeaderboard(batchID, limitStr, offsetStr, rating string, startDate, endDate time.Time) (*LeaderboardResponse, error) {
@@ -464,14 +444,8 @@ func (s *StreakService) GetBatchLeaderboard(batchID, limitStr, offsetStr, rating
 		}
 
 		// Apply filters
-		if rating != "" {
-			ratingFloat, err := strconv.ParseFloat(rating, 64)
-			if err != nil {
-				continue // Skip if rating filter is invalid
-			}
-			if breakdown.CurrentRating != ratingFloat {
-				continue
-			}
+		if rating != "" && breakdown.CurrentRating != rating {
+			continue
 		}
 
 		// Check date range if provided
@@ -490,7 +464,7 @@ func (s *StreakService) GetBatchLeaderboard(batchID, limitStr, offsetStr, rating
 			UserID:      user.ID,
 			UserName:    user.Name,
 			Score:       breakdown.FinalScore,
-			Rating:      fmt.Sprintf("%.1f", breakdown.CurrentRating),
+			Rating:      breakdown.CurrentRating,
 			StreakCount: breakdown.StreakCount,
 			BatchID:     batchID,
 		})
@@ -569,14 +543,8 @@ func (s *StreakService) GetTopPerformers(limitStr, offsetStr, rating string, sta
 		}
 
 		// Apply filters
-		if rating != "" {
-			ratingFloat, err := strconv.ParseFloat(rating, 64)
-			if err != nil {
-				continue // Skip if rating filter is invalid
-			}
-			if breakdown.CurrentRating != ratingFloat {
-				continue
-			}
+		if rating != "" && breakdown.CurrentRating != rating {
+			continue
 		}
 
 		// Check date range if provided
@@ -595,7 +563,7 @@ func (s *StreakService) GetTopPerformers(limitStr, offsetStr, rating string, sta
 			UserID:      user.ID,
 			UserName:    user.Name,
 			Score:       breakdown.FinalScore,
-			Rating:      fmt.Sprintf("%.1f", breakdown.CurrentRating),
+			Rating:      breakdown.CurrentRating,
 			StreakCount: breakdown.StreakCount,
 			BatchID:     user.BatchID,
 		})
@@ -710,17 +678,16 @@ func (s *StreakService) GetRatingDistribution(batchID string) (*RatingDistributi
 			continue
 		}
 
-		// Convert rating to category based on score
-		switch {
-		case breakdown.CurrentRating < 25:
+		switch breakdown.CurrentRating {
+		case "novice":
 			distribution.Novice++
-		case breakdown.CurrentRating < 50:
+		case "beginner":
 			distribution.Beginner++
-		case breakdown.CurrentRating < 75:
+		case "intermediate":
 			distribution.Intermediate++
-		case breakdown.CurrentRating < 90:
+		case "advanced":
 			distribution.Advanced++
-		default:
+		case "expert":
 			distribution.Expert++
 		}
 	}
@@ -769,152 +736,4 @@ func (s *StreakService) GetStreak(streakID string) (*models.Streak, bool) {
 // GetFreezeConfig returns the freeze configuration
 func (s *StreakService) GetFreezeConfig() (*models.FreezeConfig, bool) {
 	return s.store.GetFreezeConfig()
-}
-
-// GetOverallLeaderboardStats returns overall statistics for all leaderboards
-func (s *StreakService) GetOverallLeaderboardStats() (*models.LeaderboardStats, error) {
-	allStreaks := s.store.GetAllStreakToUsers()
-	if len(allStreaks) == 0 {
-		return &models.LeaderboardStats{
-			TotalUsers:    0,
-			AverageRating: "0",
-			MaxRating:     "0",
-			MinRating:     "0",
-			AverageStreak: 0,
-			MaxStreak:     0,
-			MinStreak:     0,
-		}, nil
-	}
-
-	var totalRating float64
-	var maxRating float64
-	var minRating float64 = 999999
-	var totalStreak int
-	var maxStreak int
-	var minStreak int = 999999
-
-	for _, streak := range allStreaks {
-		// Use the CurrentRating directly since it's already a float64
-		rating := streak.CurrentRating
-		totalRating += rating
-		if rating > maxRating {
-			maxRating = rating
-		}
-		if rating < minRating {
-			minRating = rating
-		}
-
-		if streak.StreakCount > maxStreak {
-			maxStreak = streak.StreakCount
-		}
-		if streak.StreakCount < minStreak {
-			minStreak = streak.StreakCount
-		}
-		totalStreak += streak.StreakCount
-	}
-
-	avgRating := totalRating / float64(len(allStreaks))
-	avgStreak := totalStreak / len(allStreaks)
-
-	return &models.LeaderboardStats{
-		TotalUsers:    len(allStreaks),
-		AverageRating: fmt.Sprintf("%.2f", avgRating),
-		MaxRating:     fmt.Sprintf("%.2f", maxRating),
-		MinRating:     fmt.Sprintf("%.2f", minRating),
-		AverageStreak: avgStreak,
-		MaxStreak:     maxStreak,
-		MinStreak:     minStreak,
-	}, nil
-}
-
-// getStreakRange returns the range category for a streak count
-func getStreakRange(count int) string {
-	switch {
-	case count == 0:
-		return "0"
-	case count <= 7:
-		return "1-7"
-	case count <= 14:
-		return "8-14"
-	case count <= 30:
-		return "15-30"
-	default:
-		return "30+"
-	}
-}
-
-// GetLeaderboardDistribution returns the distribution of ratings and streaks
-func (s *StreakService) GetLeaderboardDistribution() (*models.LeaderboardDistribution, error) {
-	users := s.store.GetAllUsers()
-	if users == nil {
-		return nil, fmt.Errorf("failed to get users")
-	}
-
-	distribution := &models.LeaderboardDistribution{
-		RatingDistribution: make(map[string]int),
-		StreakDistribution: make(map[string]int),
-		RatingPercentiles:  make(map[string]float64),
-		StreakPercentiles:  make(map[string]float64),
-	}
-
-	var ratings []float64
-	var streaks []int
-
-	for _, user := range users {
-		streak, exists := s.store.GetStreakToUser(user.ID)
-		if !exists {
-			continue
-		}
-
-		// Use the CurrentRating directly since it's already a float64
-		ratings = append(ratings, streak.CurrentRating)
-		streaks = append(streaks, streak.StreakCount)
-
-		// Count rating distribution
-		rating := fmt.Sprintf("%.1f", streak.CurrentRating)
-		distribution.RatingDistribution[rating]++
-
-		// Count streak distribution
-		streakRange := getStreakRange(streak.StreakCount)
-		distribution.StreakDistribution[streakRange]++
-	}
-
-	// Calculate percentiles
-	if len(ratings) > 0 {
-		sort.Float64s(ratings)
-		distribution.RatingPercentiles["25th"] = calculatePercentile(ratings, 25)
-		distribution.RatingPercentiles["50th"] = calculatePercentile(ratings, 50)
-		distribution.RatingPercentiles["75th"] = calculatePercentile(ratings, 75)
-		distribution.RatingPercentiles["90th"] = calculatePercentile(ratings, 90)
-	}
-
-	if len(streaks) > 0 {
-		sort.Ints(streaks)
-		distribution.StreakPercentiles["25th"] = float64(calculateIntPercentile(streaks, 25))
-		distribution.StreakPercentiles["50th"] = float64(calculateIntPercentile(streaks, 50))
-		distribution.StreakPercentiles["75th"] = float64(calculateIntPercentile(streaks, 75))
-		distribution.StreakPercentiles["90th"] = float64(calculateIntPercentile(streaks, 90))
-	}
-
-	return distribution, nil
-}
-
-// calculatePercentile calculates the percentile value for a slice of float64 values
-func calculatePercentile(values []float64, percentile int) float64 {
-	if len(values) == 0 {
-		return 0
-	}
-
-	index := (percentile * (len(values) - 1)) / 100
-	return values[index]
-}
-
-// calculateIntPercentile calculates the percentile value for a slice of int values
-func calculateIntPercentile(values []int, percentile int) int {
-	if len(values) == 0 {
-		return 0
-	}
-
-	index := (percentile * (len(values) - 1)) / 100
-	return values[index]
 }

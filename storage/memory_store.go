@@ -22,7 +22,6 @@ var store *MemoryStore
 
 func GetStore() *MemoryStore {
 	if store == nil {
-		now := time.Now().Format(time.RFC3339)
 		store = &MemoryStore{
 			users:         make(map[string]*models.User),
 			streaks:       make(map[string]*models.Streak),
@@ -36,12 +35,10 @@ func GetStore() *MemoryStore {
 				MinStreakCount:  7, // Minimum 7 days streak required
 				MaxFreezes:      3, // Maximum 3 freezes allowed
 				MaxDurationDays: 7, // Maximum 7 days per freeze
-				CreatedAt:       now,
-				UpdatedAt:       now,
+				CreatedAt:       time.Now(),
+				UpdatedAt:       time.Now(),
 			},
 		}
-		// Initialize rewards
-		store.InitializeRewards()
 		// Populate with dummy data
 		store.populateDummyData()
 	}
@@ -53,8 +50,6 @@ func (s *MemoryStore) populateDummyData() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	now := time.Now().Format(time.RFC3339)
-
 	// Create dummy users
 	dummyUsers := []*models.User{
 		{
@@ -62,24 +57,24 @@ func (s *MemoryStore) populateDummyData() {
 			Name:      "John Doe",
 			Phone:     "+1234567890",
 			BatchID:   "batch1",
-			CreatedAt: now,
-			UpdatedAt: now,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
 		},
 		{
 			ID:        "user2",
 			Name:      "Jane Smith",
 			Phone:     "+1987654321",
 			BatchID:   "batch1",
-			CreatedAt: now,
-			UpdatedAt: now,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
 		},
 		{
 			ID:        "user3",
 			Name:      "Bob Johnson",
 			Phone:     "+1122334455",
 			BatchID:   "batch2",
-			CreatedAt: now,
-			UpdatedAt: now,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
 		},
 	}
 
@@ -89,22 +84,22 @@ func (s *MemoryStore) populateDummyData() {
 			ID:                "streak1",
 			Type:              models.StreakTypeBeginner,
 			ThresholdDuration: 30,
-			CreatedAt:         now,
-			UpdatedAt:         now,
+			CreatedAt:         time.Now(),
+			UpdatedAt:         time.Now(),
 		},
 		{
 			ID:                "streak2",
 			Type:              models.StreakTypeIntermediate,
 			ThresholdDuration: 45,
-			CreatedAt:         now,
-			UpdatedAt:         now,
+			CreatedAt:         time.Now(),
+			UpdatedAt:         time.Now(),
 		},
 		{
 			ID:                "streak3",
 			Type:              models.StreakTypeAdvanced,
 			ThresholdDuration: 60,
-			CreatedAt:         now,
-			UpdatedAt:         now,
+			CreatedAt:         time.Now(),
+			UpdatedAt:         time.Now(),
 		},
 	}
 
@@ -114,22 +109,22 @@ func (s *MemoryStore) populateDummyData() {
 			ID:        "item1",
 			Type:      models.StreakItemTypeVideo,
 			StreakID:  "streak1",
-			CreatedAt: now,
-			UpdatedAt: now,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
 		},
 		{
 			ID:        "item2",
 			Type:      models.StreakItemTypeQuestion,
 			StreakID:  "streak1",
-			CreatedAt: now,
-			UpdatedAt: now,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
 		},
 		{
 			ID:        "item3",
 			Type:      models.StreakItemTypeFlash,
 			StreakID:  "streak2",
-			CreatedAt: now,
-			UpdatedAt: now,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
 		},
 	}
 
@@ -141,9 +136,9 @@ func (s *MemoryStore) populateDummyData() {
 			CurrentStreakID:   "streak1",
 			CurrentRating:     16.65, // 5 * 3.33 (base score)
 			MaxRating:         16.65, // 5 * 3.33 (base score)
-			LastStreakUpdated: now,
-			CreatedAt:         now,
-			UpdatedAt:         now,
+			LastStreakUpdated: time.Now(),
+			CreatedAt:         time.Now(),
+			UpdatedAt:         time.Now(),
 		},
 		{
 			UserID:            "user2",
@@ -151,9 +146,9 @@ func (s *MemoryStore) populateDummyData() {
 			CurrentStreakID:   "streak2",
 			CurrentRating:     39.96, // 12 * 3.33 (base score)
 			MaxRating:         39.96, // 12 * 3.33 (base score)
-			LastStreakUpdated: now,
-			CreatedAt:         now,
-			UpdatedAt:         now,
+			LastStreakUpdated: time.Now(),
+			CreatedAt:         time.Now(),
+			UpdatedAt:         time.Now(),
 		},
 		{
 			UserID:            "user3",
@@ -161,9 +156,9 @@ func (s *MemoryStore) populateDummyData() {
 			CurrentStreakID:   "streak3",
 			CurrentRating:     83.25, // 25 * 3.33 (base score)
 			MaxRating:         83.25, // 25 * 3.33 (base score)
-			LastStreakUpdated: now,
-			CreatedAt:         now,
-			UpdatedAt:         now,
+			LastStreakUpdated: time.Now(),
+			CreatedAt:         time.Now(),
+			UpdatedAt:         time.Now(),
 		},
 	}
 
@@ -175,9 +170,9 @@ func (s *MemoryStore) populateDummyData() {
 			Description: "Achieved novice level",
 			Type:        models.RewardTypeBadge,
 			Level:       models.RewardLevelNovice,
-			Value:       "0",
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			Value:       0,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
 		},
 		{
 			ID:          "reward2",
@@ -185,9 +180,9 @@ func (s *MemoryStore) populateDummyData() {
 			Description: "Earned 100 points for reaching beginner level",
 			Type:        models.RewardTypePoints,
 			Level:       models.RewardLevelBeginner,
-			Value:       "100",
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			Value:       100,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
 		},
 		{
 			ID:          "reward3",
@@ -195,9 +190,9 @@ func (s *MemoryStore) populateDummyData() {
 			Description: "10% discount on next course",
 			Type:        models.RewardTypeDiscount,
 			Level:       models.RewardLevelIntermediate,
-			Value:       "10",
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			Value:       10,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
 		},
 		{
 			ID:          "reward4",
@@ -205,9 +200,9 @@ func (s *MemoryStore) populateDummyData() {
 			Description: "Certificate of Advanced Achievement",
 			Type:        models.RewardTypeCertificate,
 			Level:       models.RewardLevelAdvanced,
-			Value:       "0",
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			Value:       0,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
 		},
 		{
 			ID:          "reward5",
@@ -215,9 +210,9 @@ func (s *MemoryStore) populateDummyData() {
 			Description: "Achieved expert level",
 			Type:        models.RewardTypeBadge,
 			Level:       models.RewardLevelExpert,
-			Value:       "0",
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			Value:       0,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
 		},
 	}
 
@@ -377,16 +372,9 @@ func (s *MemoryStore) GetActiveUserFreeze(userID string) (*models.UserFreeze, bo
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	now := time.Now()
 	for _, freeze := range s.userFreezes {
-		if freeze.UserID == userID {
-			endTime, err := time.Parse(time.RFC3339, freeze.EndTime)
-			if err != nil {
-				continue
-			}
-			if now.Before(endTime) {
-				return freeze, true
-			}
+		if freeze.UserID == userID && time.Now().Before(freeze.EndTime) {
+			return freeze, true
 		}
 	}
 	return nil, false
@@ -415,87 +403,4 @@ func (s *MemoryStore) GetAllRewards() []*models.Reward {
 		rewards = append(rewards, reward)
 	}
 	return rewards
-}
-
-// GetAllStreakToUsers returns all streak-to-user mappings
-func (s *MemoryStore) GetAllStreakToUsers() []*models.StreakToUser {
-	var streaks []*models.StreakToUser
-	for _, streak := range s.streakToUsers {
-		streaks = append(streaks, streak)
-	}
-	return streaks
-}
-
-// InitializeRewards initializes default rewards
-func (s *MemoryStore) InitializeRewards() {
-	now := time.Now().Format(time.RFC3339)
-	s.rewards = map[string]*models.Reward{
-		"bronze": {
-			ID:          "bronze",
-			Name:        "Bronze Achievement",
-			Description: "Achieve a rating of 50 or higher",
-			Rating:      50,
-			Type:        models.RewardTypeBadge,
-			Level:       models.RewardLevelNovice,
-			Value:       "bronze_badge",
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-		"silver": {
-			ID:          "silver",
-			Name:        "Silver Achievement",
-			Description: "Achieve a rating of 75 or higher",
-			Rating:      75,
-			Type:        models.RewardTypeBadge,
-			Level:       models.RewardLevelBeginner,
-			Value:       "silver_badge",
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-		"gold": {
-			ID:          "gold",
-			Name:        "Gold Achievement",
-			Description: "Achieve a rating of 90 or higher",
-			Rating:      90,
-			Type:        models.RewardTypeBadge,
-			Level:       models.RewardLevelAdvanced,
-			Value:       "gold_badge",
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-		"points_100": {
-			ID:          "points_100",
-			Name:        "100 Points",
-			Description: "Earn 100 points",
-			Rating:      50,
-			Type:        models.RewardTypePoints,
-			Level:       models.RewardLevelBeginner,
-			Value:       "100",
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-		"points_500": {
-			ID:          "points_500",
-			Name:        "500 Points",
-			Description: "Earn 500 points",
-			Rating:      75,
-			Type:        models.RewardTypePoints,
-			Level:       models.RewardLevelAdvanced,
-			Value:       "500",
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-	}
-}
-
-// GetAllStreaks returns all streaks in the store
-func (s *MemoryStore) GetAllStreaks() []*models.Streak {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	streaks := make([]*models.Streak, 0, len(s.streaks))
-	for _, streak := range s.streaks {
-		streaks = append(streaks, streak)
-	}
-	return streaks
 }

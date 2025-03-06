@@ -96,9 +96,15 @@ func (h *LeaderboardHandler) GetTopPerformers(c *gin.Context) {
 	c.JSON(http.StatusOK, performers)
 }
 
-// GetLeaderboardStats handles requests to get overall leaderboard statistics
+// GetLeaderboardStats returns statistics for the leaderboard
 func (h *LeaderboardHandler) GetLeaderboardStats(c *gin.Context) {
-	stats, err := h.streakService.GetOverallLeaderboardStats()
+	batchID := c.Param("batch_id")
+	if batchID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "batch_id is required"})
+		return
+	}
+
+	stats, err := h.streakService.GetLeaderboardStats(batchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -139,25 +145,4 @@ func (h *LeaderboardHandler) GetStreakDistribution(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, distribution)
-}
-
-// GetLeaderboardDistribution handles requests to get the distribution of ratings and streaks
-func (h *LeaderboardHandler) GetLeaderboardDistribution(c *gin.Context) {
-	distribution, err := h.streakService.GetLeaderboardDistribution()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, distribution)
-}
-
-// GetOverallLeaderboardStats returns overall statistics for all leaderboards
-func (h *LeaderboardHandler) GetOverallLeaderboardStats(c *gin.Context) {
-	stats, err := h.streakService.GetOverallLeaderboardStats()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, stats)
 }

@@ -19,16 +19,17 @@ func main() {
 	router := gin.Default()
 
 	// Initialize services
-	userService := services.NewUserService()
 	streakService := services.NewStreakService()
 	rewardService := services.NewRewardService()
+	userService := services.NewUserService()
 	freezeService := services.NewFreezeService()
 
 	// Initialize handlers
-	userHandler := handlers.NewUserHandler(userService)
 	streakHandler := handlers.NewStreakHandler(streakService)
+	ratingHandler := handlers.NewRatingHandler(streakService)
 	leaderboardHandler := handlers.NewLeaderboardHandler(streakService)
 	rewardHandler := handlers.NewRewardHandler(rewardService)
+	userHandler := handlers.NewUserHandler(userService)
 	freezeHandler := handlers.NewFreezeHandler(freezeService)
 
 	// API routes
@@ -49,6 +50,13 @@ func main() {
 			streaks.GET("/info/:user_id", streakHandler.GetStreakInfo)
 		}
 
+		// Rating routes
+		ratings := api.Group("/ratings")
+		{
+			ratings.GET("/user/:user_id", ratingHandler.CalculateRating)
+			ratings.GET("/user/:user_id/breakdown", ratingHandler.GetRatingBreakdown)
+		}
+
 		// Leaderboard routes
 		leaderboards := api.Group("/leaderboards")
 		{
@@ -57,8 +65,6 @@ func main() {
 			leaderboards.GET("/batch/:batch_id/stats", leaderboardHandler.GetLeaderboardStats)
 			leaderboards.GET("/batch/:batch_id/rating-distribution", leaderboardHandler.GetRatingDistribution)
 			leaderboards.GET("/batch/:batch_id/streak-distribution", leaderboardHandler.GetStreakDistribution)
-			leaderboards.GET("/stats", leaderboardHandler.GetOverallLeaderboardStats)
-			leaderboards.GET("/distribution", leaderboardHandler.GetLeaderboardDistribution)
 		}
 
 		// Reward routes
@@ -66,10 +72,10 @@ func main() {
 		{
 			rewards.GET("/user/:user_id", rewardHandler.GetUserRewards)
 			rewards.GET("/reward/:reward_id", rewardHandler.GetRewardDetails)
-			rewards.GET("/available", rewardHandler.GetAvailableRewards)
 			rewards.GET("/available/:rating", rewardHandler.GetAvailableRewards)
 			rewards.GET("/progress/:user_id", rewardHandler.GetRewardProgress)
-			rewards.POST("/earn/:user_id/:reward_id", rewardHandler.EarnReward)
+			rewards.POST("/check", rewardHandler.CheckAndAwardRewards)
+			rewards.GET("/user/:user_id/progress", rewardHandler.GetUserRewardProgress)
 		}
 
 		// Freeze routes
