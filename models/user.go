@@ -1,8 +1,12 @@
 package models
 
-// User represents a user in the education platform
 type User struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	BatchID string `json:"batch_id"`
+	ID    string  `json:"id"`
+	Email string  `json:"email"`
+	Score []Score `json:"score"`
+}
+
+type Score struct {
+	Subject string `json:"subject"`
+	Score   int    `json:"score"`
 }
