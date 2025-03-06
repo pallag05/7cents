@@ -14,6 +14,9 @@ A robust Go-based backend system for tracking learning activities, managing user
   - Streak counting and maintenance
   - Streak break detection
   - Activity history
+  - Streak freezing capability
+  - Detailed streak requirements and milestones
+  - Multiple streak types (Beginner, Intermediate, Advanced)
 
 - **Rating System**
   - Dynamic rating calculation based on:
@@ -53,6 +56,12 @@ The system follows a clean architecture pattern with the following components:
 ### Streak Management
 - `POST /api/streaks/activity` - Record learning activity
 - `GET /api/streaks/user/:user_id` - Get user streak information
+- `GET /api/streaks/info/:user_id` - Get detailed streak information including requirements and milestones
+
+### Streak Freeze Management
+- `POST /api/freezes/streak` - Freeze a user's streak
+- `DELETE /api/freezes/streak/:user_id` - Unfreeze a user's streak
+- `GET /api/freezes/status/:user_id` - Get freeze status
 
 ### Rating System
 - `GET /api/ratings/user/:user_id` - Get user rating
@@ -70,6 +79,51 @@ The system follows a clean architecture pattern with the following components:
 - `GET /api/rewards/reward/:reward_id` - Get reward details
 - `GET /api/rewards/available/:rating` - Get available rewards for rating
 - `GET /api/rewards/progress/:user_id` - Get reward progress
+
+## Streak Types and Requirements
+
+### Beginner Streak
+- Minimum daily duration: 30 minutes
+- Maximum gap allowed: 1 day
+- Required activities: Videos, Questions, Flashcards
+- Bonus multiplier: 1.0x
+- Perfect for beginners starting their learning journey
+
+### Intermediate Streak
+- Minimum daily duration: 1 hour
+- Maximum gap allowed: 1 day
+- Required activities: Videos, Questions, Flashcards, Quizzes
+- Bonus multiplier: 1.2x
+- For committed learners looking to advance
+
+### Advanced Streak
+- Minimum daily duration: 2 hours
+- Maximum gap allowed: 0 days
+- Required activities: Videos, Questions, Flashcards, Quizzes, Projects
+- Bonus multiplier: 1.5x
+- For dedicated learners pursuing mastery
+
+## Streak Freeze System
+
+The system allows users to freeze their streaks under specific conditions:
+
+- Minimum streak requirement: 7 days
+- Maximum freezes allowed: 3
+- Maximum freeze duration: 7 days per freeze
+- Streak count and rating are preserved during freeze
+- Automatic unfreeze when duration expires
+
+## Streak Milestones
+
+The system tracks progress through various milestones:
+- 7 days: Weekly achievement
+- 14 days: Bi-weekly milestone
+- 21 days: Three-week mark
+- 30 days: Monthly achievement
+- 60 days: Two-month milestone
+- 90 days: Quarterly achievement
+- 180 days: Half-year milestone
+- 365 days: Yearly achievement
 
 ## System Flow
 
@@ -103,6 +157,27 @@ sequenceDiagram
     StreakService-->>API: Activity recorded
     API-->>Frontend: Success response
     Frontend-->>User: Show updated streak
+
+    %% Streak Freeze Flow
+    User->>Frontend: Request streak freeze
+    Frontend->>API: POST /api/freezes/streak
+    API->>StreakService: FreezeStreak(userID, duration)
+    StreakService->>MemoryStore: Update freeze status
+    MemoryStore-->>StreakService: Status updated
+    StreakService-->>API: Freeze confirmed
+    API-->>Frontend: Freeze response
+    Frontend-->>User: Show freeze status
+
+    %% Streak Info Flow
+    User->>Frontend: View streak details
+    Frontend->>API: GET /api/streaks/info/:user_id
+    API->>StreakService: GetStreakInfo(userID)
+    StreakService->>MemoryStore: Get user streak data
+    MemoryStore-->>StreakService: Streak data
+    StreakService->>StreakService: Calculate requirements
+    StreakService-->>API: Streak info
+    API-->>Frontend: Info response
+    Frontend-->>User: Display streak details
 
     %% Leaderboard Flow
     User->>Frontend: View batch leaderboard
