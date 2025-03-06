@@ -1,8 +1,6 @@
 package storage
 
-import (
-	"github.com/anshparmar/7cents/models"
-)
+import "github.com/anshparmar/7cents/models"
 
 type MemoryStore struct {
 	users  map[string]*models.User
