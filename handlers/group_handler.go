@@ -110,3 +110,52 @@ func (h *GroupHandler) JoinGroup(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Successfully joined the group"})
 }
+
+// LeaveGroup handles the POST request for a user to leave a group
+func (h *GroupHandler) LeaveGroup(c *gin.Context) {
+	groupID := c.Param("id")
+	if groupID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "group ID is required"})
+		return
+	}
+
+	userID := c.Param("user_id")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user ID is required"})
+		return
+	}
+
+	if err := h.groupService.LeaveGroup(groupID, userID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Successfully left the group"})
+}
+
+func (h *GroupHandler) UpdateGroup(c *gin.Context) {
+	groupID := c.Param("id")
+	if groupID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "group ID is required"})
+		return
+	}
+
+	var update models.GroupUpdateRequest
+	if err := c.ShouldBindJSON(&update); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate that exactly one of message or action is provided
+	if (update.Message == nil && update.Action == nil) || (update.Message != nil && update.Action != nil) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "exactly one of message or action must be provided"})
+		return
+	}
+
+	if err := h.groupService.UpdateGroup(groupID, &update); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Group updated successfully"})
+}

@@ -516,6 +516,19 @@ func (s *MemoryStore) GetGroupsByIDs(groupIDs []string) ([]*models.Group, error)
 	return groups, nil
 }
 
+func (s *MemoryStore) AddActionToGroup(groupID string, action *models.Action) error {
+	group, err := s.GetGroup(groupID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return nil
+	}
+
+	group.Actions = append(group.Actions, *action)
+	return s.UpdateGroup(group)
+}
+
 func (s *MemoryStore) SearchGroupsByTag(tag string) []*models.Group {
 	var matchingGroups []*models.Group
 	for _, group := range s.groups {

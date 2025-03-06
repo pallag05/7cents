@@ -23,3 +23,33 @@ type Message struct {
 	SenderId  string    `json:"senderId"`
 	Timestamp time.Time `json:"timestamp"`
 }
+
+type Action struct {
+	ID        string    `json:"id"`
+	Type      string    `json:"type"`
+	Content   string    `json:"content"`
+	SenderId  string    `json:"senderId"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+const (
+	ActionTypeCall = "CALL"
+	ActionTypeTest = "TEST"
+)
+
+type GroupUpdateRequest struct {
+	Message *MessageUpdate `json:"message,omitempty"`
+	Action  *ActionUpdate  `json:"action,omitempty"`
+}
+
+type MessageUpdate struct {
+	Content   string    `json:"content"`
+	SenderID  string    `json:"sender_id"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+type ActionUpdate struct {
+	Type      string    `json:"type"`
+	Content   string    `json:"content"`
+	Timestamp time.Time `json:"timestamp"`
+}

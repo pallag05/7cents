@@ -152,3 +152,108 @@ func (s *GroupService) JoinGroup(groupID string, userID string) error {
 	}
 	return s.store.UpdateUserGroup(userGroup)
 }
+
+func (s *GroupService) LeaveGroup(groupID string, userID string) error {
+	// Get the group
+	group, err := s.store.GetGroup(groupID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return fmt.Errorf("group not found")
+	}
+
+	// Check if user is a member
+	isMember := false
+	for _, memberID := range group.Members {
+		if memberID == userID {
+			isMember = true
+			break
+		}
+	}
+	if !isMember {
+		return fmt.Errorf("user is not a member of this group")
+	}
+
+	// Remove user from group members
+	if err := s.store.RemoveMemberFromGroup(groupID, userID); err != nil {
+		return err
+	}
+
+	// Get user's group data
+	userGroup, err := s.store.GetUserGroup(userID)
+	if err != nil {
+		return err
+	}
+	if userGroup == nil {
+		return fmt.Errorf("user group data not found")
+	}
+
+	// Remove group from user's active groups
+	activeGroups := []string{}
+	for _, activeGroupID := range userGroup.ActiveGroups {
+		if activeGroupID != groupID {
+			activeGroups = append(activeGroups, activeGroupID)
+		}
+	}
+	userGroup.ActiveGroups = activeGroups
+
+	// Update user group data
+	return s.store.UpdateUserGroup(userGroup)
+}
+
+func (s *GroupService) UpdateGroup(groupID string, update *models.GroupUpdateRequest) error {
+	// Get the group
+	group, err := s.store.GetGroup(groupID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return fmt.Errorf("group not found")
+	}
+
+	// Handle message update
+	if update.Message != nil {
+		message := models.Message{
+			ID:        uuid.New().String(),
+			Content:   update.Message.Content,
+			SenderId:  update.Message.SenderID,
+			Timestamp: update.Message.Timestamp,
+		}
+		if err := s.store.AddMessageToGroup(groupID, &message); err != nil {
+			return err
+		}
+	}
+
+	// Handle action update
+	if update.Action != nil {
+		// Create action
+		action := models.Action{
+			ID:        uuid.New().String(),
+			Type:      update.Action.Type,
+			Content:   update.Action.Content,
+			SenderId:  "system",
+			Timestamp: update.Action.Timestamp,
+		}
+
+		// Add action to group
+		if err := s.store.AddActionToGroup(groupID, &action); err != nil {
+			return err
+		}
+
+		// Also create a message for this action
+		actionMessage := models.Message{
+			ID:        uuid.New().String(),
+			Content:   fmt.Sprintf("[%s] %s", update.Action.Type, update.Action.Content),
+			SenderId:  "system",
+			Timestamp: update.Action.Timestamp,
+		}
+
+		// Add the action message
+		if err := s.store.AddMessageToGroup(groupID, &actionMessage); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
