@@ -47,6 +47,7 @@ func main() {
 		{
 			streaks.POST("/activity", streakHandler.RecordActivity)
 			streaks.GET("/user/:user_id", streakHandler.GetUserStreakInfo)
+			streaks.GET("/info/:user_id", streakHandler.GetStreakInfo)
 		}
 
 		// Rating routes

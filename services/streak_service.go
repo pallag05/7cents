@@ -711,3 +711,13 @@ func (s *StreakService) GetStreakDistribution(batchID string) (*StreakDistributi
 	distribution.LastUpdated = time.Now().Format(time.RFC3339)
 	return distribution, nil
 }
+
+// GetStreak returns a streak by ID
+func (s *StreakService) GetStreak(streakID string) (*models.Streak, bool) {
+	return s.store.GetStreak(streakID)
+}
+
+// GetFreezeConfig returns the freeze configuration
+func (s *StreakService) GetFreezeConfig() (*models.FreezeConfig, bool) {
+	return s.store.GetFreezeConfig()
+}
