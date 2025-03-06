@@ -1,0 +1,102 @@
+{
+  "matches": [
+    {
+      "pair_id": "match1",
+      "user1": {
+        "id": "user1",
+        "email": "alice.smith@example.com"
+      },
+      "user2": {
+        "id": "user10",
+        "email": "jack.martin@example.com"
+      },
+      "similarity": 0.95,
+      "match_reason": "Both are high performers with very consistent scores across subjects"
+    },
+    {
+      "pair_id": "match2",
+      "user1": {
+        "id": "user4",
+        "email": "david.brown@example.com"
+      },
+      "user2": {
+        "id": "user9",
+        "email": "isabel.clark@example.com"
+      },
+      "similarity": 0.92,
+      "match_reason": "Both show consistent above-average performance with minimal variation"
+    },
+    {
+      "pair_id": "match3",
+      "user1": {
+        "id": "user2",
+        "email": "bob.jones@example.com"
+      },
+      "user2": {
+        "id": "user8",
+        "email": "henry.white@example.com"
+      },
+      "similarity": 0.89,
+      "match_reason": "Both demonstrate consistent average to low-average scores"
+    },
+    {
+      "pair_id": "match4",
+      "user1": {
+        "id": "user1",
+        "email": "alice.smith@example.com"
+      },
+      "user2": {
+        "id": "user5",
+        "email": "emma.davis@example.com"
+      },
+      "similarity": 0.87,
+      "match_reason": "Both are high performers with a slight declining trend"
+    },
+    {
+      "pair_id": "match5",
+      "user1": {
+        "id": "user5",
+        "email": "emma.davis@example.com"
+      },
+      "user2": {
+        "id": "user10",
+        "email": "jack.martin@example.com"
+      },
+      "similarity": 0.85,
+      "match_reason": "Both show strong performance with different patterns of slight variation"
+    },
+    {
+      "pair_id": "match6",
+      "user1": {
+        "id": "user3",
+        "email": "carol.wilson@example.com"
+      },
+      "user2": {
+        "id": "user7",
+        "email": "grace.taylor@example.com"
+      },
+      "similarity": 0.83,
+      "match_reason": "Both show high variability between subjects with similar patterns"
+    },
+    {
+      "pair_id": "match7",
+      "user1": {
+        "id": "user4",
+        "email": "david.brown@example.com"
+      },
+      "user2": {
+        "id": "user10",
+        "email": "jack.martin@example.com"
+      },
+      "similarity": 0.82,
+      "match_reason": "Both maintain consistently high scores with minimal variation"
+    }
+  ],
+  "metadata": {
+    "similarity_threshold": 0.8,
+    "total_possible_pairs": 45,
+    "matched_pairs": 7,
+    "matching_date": "2024-03-20",
+    "matching_criteria": "Normalized score patterns across all subjects"
+  }
+} 

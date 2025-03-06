@@ -3,6 +3,8 @@ package models
 import (
 	"math"
 	"sort"
+
+	"github.com/google/uuid"
 )
 
 // UserPair represents a matched pair of users with their similarity score
@@ -10,6 +12,61 @@ type UserPair struct {
 	User1      User    `json:"user1"`
 	User2      User    `json:"user2"`
 	Similarity float64 `json:"similarity"`
+}
+
+// GenerateExampleUsers creates 10 example users with different score patterns
+func GenerateExampleUsers() []User {
+	subjects := []string{"Math", "Physics", "Chemistry", "Biology", "English"}
+
+	// Define different score patterns
+	patterns := [][]int{
+		{95, 92, 88, 85, 90}, // High performer, consistent
+		{75, 78, 72, 76, 74}, // Average, consistent
+		{65, 85, 45, 90, 55}, // Highly variable
+		{88, 85, 82, 86, 84}, // Good, very consistent
+		{92, 88, 85, 80, 78}, // Declining pattern
+		{75, 80, 85, 88, 90}, // Improving pattern
+		{95, 65, 90, 70, 85}, // Alternating high-low
+		{70, 72, 68, 71, 73}, // Low-average, consistent
+		{85, 83, 87, 82, 86}, // Above average, consistent
+		{90, 92, 88, 91, 89}, // High performer, slight variation
+	}
+
+	var users []User
+	for i, pattern := range patterns {
+		var scores []Score
+		for j, score := range pattern {
+			scores = append(scores, Score{
+				Subject: subjects[j],
+				Score:   score,
+			})
+		}
+
+		users = append(users, User{
+			ID:    uuid.New().String(),
+			Email: generateEmail(i),
+			Score: scores,
+		})
+	}
+
+	return users
+}
+
+// Helper function to generate example emails
+func generateEmail(i int) string {
+	emails := []string{
+		"alice.smith@example.com",
+		"bob.jones@example.com",
+		"carol.wilson@example.com",
+		"david.brown@example.com",
+		"emma.davis@example.com",
+		"frank.miller@example.com",
+		"grace.taylor@example.com",
+		"henry.white@example.com",
+		"isabel.clark@example.com",
+		"jack.martin@example.com",
+	}
+	return emails[i]
 }
 
 // normalizeScores converts raw scores to relative scores (z-scores)
