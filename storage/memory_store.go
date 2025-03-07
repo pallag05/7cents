@@ -240,7 +240,7 @@ func NewMemoryStore() *MemoryStore {
 		Description: fmt.Sprintf("Public study group for topic weakness Thermodynamics"),
 		Tag:         "Thermodynamics",
 		Type:        "Topic Weakness",
-		Private:     false,
+		Private:     true,
 		Messages: []models.Message{{
 			ID:        uuid.New().String(),
 			Content:   fmt.Sprintf("Welcome to your paired study group! You were matched based on weak performance in Physics"),
