@@ -15,6 +15,7 @@ type Group struct {
 	CreateBy      string    `json:"createBy"`
 	Capacity      int       `json:"capacity"`
 	ActivityScore int       `json:"activityScore"`
+	MeetingStarted bool      `json:"meetingStarted"`
 	Questions     []Question `json:"questions"`
 }
 
@@ -46,8 +47,9 @@ const (
 )
 
 type GroupUpdateRequest struct {
-	Message *MessageUpdate `json:"message,omitempty"`
-	Action  *ActionUpdate  `json:"action,omitempty"`
+	Message        *MessageUpdate `json:"message,omitempty"`
+	Action         *ActionUpdate  `json:"action,omitempty"`
+	MeetingStarted bool           `json:"meetingStarted"`
 }
 
 type MessageUpdate struct {
