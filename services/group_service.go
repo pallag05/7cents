@@ -4,6 +4,7 @@ import (
 	"allen_hackathon/models"
 	"allen_hackathon/storage"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -24,6 +25,12 @@ func (s *GroupService) CreateGroup(group *models.Group) error {
 
 	// Set initial values
 	group.Messages = make([]models.Message, 0)
+	group.Messages = append(group.Messages, models.Message{
+		ID:        uuid.New().String(),
+		Content:   "Welcome to the group!",
+		SenderId:  "system",
+		Timestamp: time.Now(),
+	})
 	group.ActivityScore = 0
 
 	// Store the group
