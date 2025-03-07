@@ -187,7 +187,6 @@ func NewMemoryStore() *MemoryStore {
 				ID:            user1.ID + user2.ID + "group",
 				Title:         fmt.Sprintf("Pair Study: %s", dm.subject),
 				Description:   fmt.Sprintf("Private study group for matched pair (%.0f%% similarity)", dm.similarity*100),
-				Members:       []string{user1.ID, user2.ID},
 				Tag:           dm.subject,
 				Type:          "pair_study",
 				Private:       true,
