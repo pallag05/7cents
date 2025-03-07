@@ -142,28 +142,28 @@ func NewMemoryStore() *MemoryStore {
 			email1:     "alice.smith@example.com",
 			email2:     "emma.davis@example.com",
 			similarity: 0.95,
-			reason:     "Both high performers across all subjects",
+			reason:     "This group is recommended because both peers are high performers across all subjects",
 			subject:    "physics",
 		},
 		{
 			email1:     "david.brown@example.com",
 			email2:     "emma.davis@example.com",
 			similarity: 0.90,
-			reason:     "Similar consistent performance pattern",
+			reason:     "This group is recommended because both peers show a similar consistent performance pattern",
 			subject:    "chemistry",
 		},
 		{
 			email1:     "alice.smith@example.com",
 			email2:     "david.brown@example.com",
 			similarity: 0.88,
-			reason:     "Both strong in physics and overall consistent",
+			reason:     "This group is recommended because both peers are strong in physics and are overall consistent",
 			subject:    "physics",
 		},
 		{
 			email1:     "bob.jones@example.com",
 			email2:     "carol.wilson@example.com",
 			similarity: 0.85,
-			reason:     "Complementary strengths in different subjects",
+			reason:     "This group is recommended because both peers have complementary strengths in different subjects",
 			subject:    "maths",
 		},
 	}
@@ -184,16 +184,17 @@ func NewMemoryStore() *MemoryStore {
 
 			// Create a private study group for the pair
 			pairGroup := &models.Group{
-				ID:            user1.ID + user2.ID + "group",
-				Title:         fmt.Sprintf("Pair Study: %s", dm.subject),
-				Description:   fmt.Sprintf("Private study group for matched pair (%.0f%% similarity)", dm.similarity*100),
-				Tag:           dm.subject,
-				Type:          "pair_study",
-				Private:       true,
-				Messages:      []models.Message{},
-				CreateBy:      user1.ID,
-				Capacity:      2,
-				ActivityScore: int(dm.similarity * 100),
+				ID:                   user1.ID + user2.ID + "group",
+				Title:                fmt.Sprintf("Pair Study: %s", dm.subject),
+				Description:          fmt.Sprintf("Private study group for matched pair (%.0f%% similarity)", dm.similarity*100),
+				Tag:                  dm.subject,
+				Type:                 "Pair Study",
+				Private:              true,
+				Messages:             []models.Message{},
+				CreateBy:             user1.ID,
+				Capacity:             2,
+				ActivityScore:        int(dm.similarity * 100),
+				RecommendationReason: dm.reason,
 			}
 
 			// Add welcome message
@@ -204,9 +205,10 @@ func NewMemoryStore() *MemoryStore {
 				Timestamp: time.Now(),
 			}
 			pairGroup.Messages = append(pairGroup.Messages, welcomeMsg)
-
 			// Add group to store
 			store.groups[pairGroup.ID] = pairGroup
+
+			welcomeMsg.Content = fmt.Sprintf("You were matched based on weak performance in " + dm.subject)
 
 			// Add group to recommended groups for both users
 			if userGroup1, exists := store.userGroups[user1.ID]; exists {
@@ -215,7 +217,33 @@ func NewMemoryStore() *MemoryStore {
 			if userGroup2, exists := store.userGroups[user2.ID]; exists {
 				userGroup2.RecommendedGroups = append(userGroup2.RecommendedGroups, pairGroup.ID)
 			}
+
 		}
+	}
+
+	pairGroup1 := &models.Group{
+		ID:          "15" + "group" + "2",
+		Title:       fmt.Sprintf("Topic Weakness: Physics"),
+		Description: fmt.Sprintf("Public study group for topic weakness Physics"),
+		Tag:         "Physics",
+		Type:        "Topic Weakness",
+		Private:     false,
+		Messages: []models.Message{{
+			ID:        uuid.New().String(),
+			Content:   fmt.Sprintf("Welcome to your paired study group! You were matched based on weak performance in Physics"),
+			SenderId:  "1",
+			Timestamp: time.Now(),
+		}},
+		CreateBy:             "1",
+		Capacity:             10,
+		ActivityScore:        85,
+		RecommendationReason: "You were matched based on weak performance in Physics",
+	}
+
+	store.groups[pairGroup1.ID] = pairGroup1
+	// Add group to recommended groups for both users
+	if userGroup1, exists := store.userGroups["1"]; exists {
+		userGroup1.RecommendedGroups = append(userGroup1.RecommendedGroups, pairGroup1.ID)
 	}
 
 	// Add dummy groups
