@@ -195,6 +195,7 @@ func NewMemoryStore() *MemoryStore {
 				Capacity:             2,
 				ActivityScore:        int(dm.similarity * 100),
 				RecommendationReason: dm.reason,
+				Members:              []string{user1.ID, user2.ID},
 			}
 
 			// Add welcome message
@@ -238,6 +239,7 @@ func NewMemoryStore() *MemoryStore {
 		Capacity:             10,
 		ActivityScore:        85,
 		RecommendationReason: "You were matched based on weak performance in Physics",
+		Members:              []string{"1", "5"},
 	}
 
 	store.groups[pairGroup1.ID] = pairGroup1
