@@ -109,6 +109,7 @@ func (s *GroupService) GetGroupsPage(userID string) (*models.GroupsPageResponse,
 	return &models.GroupsPageResponse{
 		SystemRecommendedGroups: recommendedGroupsList,
 		UserActiveGroups:        activeGroupsList,
+		User:                    *user,
 	}, nil
 }
 

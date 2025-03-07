@@ -328,7 +328,6 @@ func NewMemoryStore() *MemoryStore {
 
 	// Generate matches between users based on similar scores
 	store.generateInitialMatches()*/
-
 	return store
 }
 
