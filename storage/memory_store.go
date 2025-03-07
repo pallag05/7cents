@@ -60,7 +60,6 @@ func NewMemoryStore() *MemoryStore {
 
 	// Add dummy questions
 
-
 	// Add dummy users
 	dummyUsers := []struct {
 		email    string
@@ -113,7 +112,7 @@ func NewMemoryStore() *MemoryStore {
 		}
 
 		user := &models.User{
-			ID:    uuid.New().String(),
+			ID:    du.id,
 			Email: du.email,
 			Score: scores,
 		}
@@ -122,7 +121,7 @@ func NewMemoryStore() *MemoryStore {
 
 		// Create UserGroup for each user
 		userGroup := &models.UserGroup{
-			ID:                du.id,
+			ID:                du.id + "group",
 			UserID:            user.ID,
 			ActiveGroups:      []string{},
 			RecommendedGroups: []string{},
@@ -184,7 +183,7 @@ func NewMemoryStore() *MemoryStore {
 
 			// Create a private study group for the pair
 			pairGroup := &models.Group{
-				ID:            "1",
+				ID:            user1.ID + user2.ID + "group",
 				Title:         fmt.Sprintf("Pair Study: %s", dm.subject),
 				Description:   fmt.Sprintf("Private study group for matched pair (%.0f%% similarity)", dm.similarity*100),
 				Members:       []string{user1.ID, user2.ID},
@@ -223,7 +222,7 @@ func NewMemoryStore() *MemoryStore {
 	subjects := []string{"physics", "chemistry", "maths"}
 	for i, subject := range subjects {
 		group := &models.Group{
-			ID:            "2",
+			ID:            "3" + "group",
 			Title:         subject + " Study Group",
 			Description:   "A group for studying " + subject,
 			Members:       []string{},
@@ -240,7 +239,7 @@ func NewMemoryStore() *MemoryStore {
 
 	// Add one more physics group with different activity score
 	physicsGroup2 := &models.Group{
-		ID:            "3",
+		ID:            "4" + "group",
 		Title:         "Advanced Physics Group",
 		Description:   "Advanced physics study group",
 		Members:       []string{},
