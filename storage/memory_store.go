@@ -66,31 +66,37 @@ func NewMemoryStore() *MemoryStore {
 		email    string
 		subjects []string
 		scores   []int
+		id       string
 	}{
 		{
 			email:    "alice.smith@example.com",
 			subjects: []string{"physics", "chemistry", "maths"},
 			scores:   []int{95, 92, 90},
+			id:       "1",
 		},
 		{
 			email:    "bob.jones@example.com",
 			subjects: []string{"physics", "chemistry", "maths"},
 			scores:   []int{75, 78, 72},
+			id:       "2",
 		},
 		{
 			email:    "carol.wilson@example.com",
 			subjects: []string{"physics", "chemistry", "maths"},
 			scores:   []int{85, 45, 90},
+			id:       "3",
 		},
 		{
 			email:    "david.brown@example.com",
 			subjects: []string{"physics", "chemistry", "maths"},
 			scores:   []int{88, 82, 86},
+			id:       "4",
 		},
 		{
 			email:    "emma.davis@example.com",
 			subjects: []string{"physics", "chemistry", "maths"},
 			scores:   []int{92, 85, 78},
+			id:       "5",
 		},
 	}
 
@@ -116,7 +122,7 @@ func NewMemoryStore() *MemoryStore {
 
 		// Create UserGroup for each user
 		userGroup := &models.UserGroup{
-			ID:                uuid.New().String(),
+			ID:                du.id,
 			UserID:            user.ID,
 			ActiveGroups:      []string{},
 			RecommendedGroups: []string{},
@@ -178,7 +184,7 @@ func NewMemoryStore() *MemoryStore {
 
 			// Create a private study group for the pair
 			pairGroup := &models.Group{
-				ID:            uuid.New().String(),
+				ID:            "1",
 				Title:         fmt.Sprintf("Pair Study: %s", dm.subject),
 				Description:   fmt.Sprintf("Private study group for matched pair (%.0f%% similarity)", dm.similarity*100),
 				Members:       []string{user1.ID, user2.ID},
@@ -217,7 +223,7 @@ func NewMemoryStore() *MemoryStore {
 	subjects := []string{"physics", "chemistry", "maths"}
 	for i, subject := range subjects {
 		group := &models.Group{
-			ID:            uuid.New().String(),
+			ID:            "2",
 			Title:         subject + " Study Group",
 			Description:   "A group for studying " + subject,
 			Members:       []string{},
@@ -234,7 +240,7 @@ func NewMemoryStore() *MemoryStore {
 
 	// Add one more physics group with different activity score
 	physicsGroup2 := &models.Group{
-		ID:            uuid.New().String(),
+		ID:            "3",
 		Title:         "Advanced Physics Group",
 		Description:   "Advanced physics study group",
 		Members:       []string{},
