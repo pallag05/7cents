@@ -612,11 +612,23 @@ func (s *MemoryStore) AddActionToGroup(groupID string, action *models.Action) er
 	return s.UpdateGroup(group)
 }
 
-func (s *MemoryStore) SearchGroupsByTag(tag string) []*models.Group {
+func (s *MemoryStore) SearchGroupsByTag(tag string, userID string) []*models.Group {
 	var matchingGroups []*models.Group
 	for _, group := range s.groups {
-		if group != nil && group.Tag == tag && group.Private == false {
-			matchingGroups = append(matchingGroups, group)
+		if group != nil && group.Tag == tag && group.Private == false && group.Capacity > len(group.Members) {
+			// Check if user is not already a member
+			isMember := false
+			for _, memberID := range group.Members {
+				if memberID == userID {
+					isMember = true
+					break
+				}
+			}
+
+			// Only add to matching groups if user is not a member
+			if !isMember {
+				matchingGroups = append(matchingGroups, group)
+			}
 		}
 	}
 

@@ -20,11 +20,18 @@ type Store interface {
 	AddMemberToGroup(groupID string, userID string) error
 	RemoveMemberFromGroup(groupID string, userID string) error
 	AddMessageToGroup(groupID string, message *models.Message) error
+	GetGroupsByIDs(groupIDs []string) ([]*models.Group, error)
 	AddActionToGroup(groupID string, action *models.Action) error
+	SearchGroupsByTag(tag string, userID string) []*models.Group
 
 	// UserGroup operations
 	GetUserGroup(userID string) (*models.UserGroup, error)
 	CreateUserGroup(userGroup *models.UserGroup) error
 	UpdateUserGroup(userGroup *models.UserGroup) error
-	GetGroupsByIDs(groupIDs []string) ([]*models.Group, error)
+
+	// Match operations
+	GetMatches(userID string) []*models.UserPair
+	GetAllMatches() []*models.UserPair
+	CreateMatch(user1ID, user2ID string) (*models.UserPair, error)
+	DeleteMatch(matchID string) error
 }

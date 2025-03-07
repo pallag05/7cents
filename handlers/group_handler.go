@@ -40,6 +40,7 @@ func (h *GroupHandler) CreateGroup(c *gin.Context) {
 func (h *GroupHandler) SearchGroupsByTag(c *gin.Context) {
 	var request struct {
 		Tag string `json:"tag" binding:"required"`
+		UserID string `json:"user_id" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -47,7 +48,7 @@ func (h *GroupHandler) SearchGroupsByTag(c *gin.Context) {
 		return
 	}
 
-	groups := h.store.SearchGroupsByTag(request.Tag)
+	groups := h.store.SearchGroupsByTag(request.Tag, request.UserID)
 	c.JSON(http.StatusOK, groups)
 }
 
