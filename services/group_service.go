@@ -27,7 +27,30 @@ func (s *GroupService) CreateGroup(group *models.Group) error {
 	group.ActivityScore = 0
 
 	// Store the group
-	return s.store.CreateGroup(group)
+	if err := s.store.CreateGroup(group); err != nil {
+		return err
+	}
+
+	// Get user's group data
+	userGroup, err := s.store.GetUserGroup(group.CreateBy)
+	if err != nil {
+		return err
+	}
+
+	// If user has no group data yet, create it
+	if userGroup == nil {
+		userGroup = &models.UserGroup{
+			ID:                uuid.New().String(),
+			UserID:            group.CreateBy,
+			ActiveGroups:      []string{group.ID},
+			RecommendedGroups: []string{},
+		}
+		return s.store.CreateUserGroup(userGroup)
+	}
+
+	// Add group to user's active groups
+	userGroup.ActiveGroups = append(userGroup.ActiveGroups, group.ID)
+	return s.store.UpdateUserGroup(userGroup)
 }
 
 func (s *GroupService) GetGroupsPage(userID string) (*models.GroupsPageResponse, error) {
