@@ -46,9 +46,9 @@ func main() {
 			groups.PUT("/:id", groupHandler.UpdateGroup)
 			groups.POST("/:id/leave/:user_id", groupHandler.LeaveGroup)
 			groups.POST("/search", groupHandler.SearchGroupsByTag)
+			groups.POST("/:id/reject/:user_id", groupHandler.RejectGroupRecommendation)
 		}
 	}
-
 
 	r.Run(":96")
 }

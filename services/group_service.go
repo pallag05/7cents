@@ -27,7 +27,30 @@ func (s *GroupService) CreateGroup(group *models.Group) error {
 	group.ActivityScore = 0
 
 	// Store the group
-	return s.store.CreateGroup(group)
+	if err := s.store.CreateGroup(group); err != nil {
+		return err
+	}
+
+	// Get user's group data
+	userGroup, err := s.store.GetUserGroup(group.CreateBy)
+	if err != nil {
+		return err
+	}
+
+	// If user has no group data yet, create it
+	if userGroup == nil {
+		userGroup = &models.UserGroup{
+			ID:                uuid.New().String(),
+			UserID:            group.CreateBy,
+			ActiveGroups:      []string{group.ID},
+			RecommendedGroups: []string{},
+		}
+		return s.store.CreateUserGroup(userGroup)
+	}
+
+	// Add group to user's active groups
+	userGroup.ActiveGroups = append(userGroup.ActiveGroups, group.ID)
+	return s.store.UpdateUserGroup(userGroup)
 }
 
 func (s *GroupService) GetGroupsPage(userID string) (*models.GroupsPageResponse, error) {
@@ -256,4 +279,27 @@ func (s *GroupService) UpdateGroup(groupID string, update *models.GroupUpdateReq
 	}
 
 	return nil
+}
+
+func (s *GroupService) RejectGroupRecommendation(groupID string, userID string) error {
+	// Get user's group data
+	userGroup, err := s.store.GetUserGroup(userID)
+	if err != nil {
+		return err
+	}
+	if userGroup == nil {
+		return fmt.Errorf("user group data not found")
+	}
+
+	// Remove group from recommended groups
+	recommendedGroups := []string{}
+	for _, recGroupID := range userGroup.RecommendedGroups {
+		if recGroupID != groupID {
+			recommendedGroups = append(recommendedGroups, recGroupID)
+		}
+	}
+	userGroup.RecommendedGroups = recommendedGroups
+
+	// Update user group data
+	return s.store.UpdateUserGroup(userGroup)
 }
