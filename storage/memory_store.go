@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -9,10 +10,44 @@ import (
 	"github.com/google/uuid"
 )
 
+var questions = []models.Question{
+	{
+		ID:        uuid.New().String(),
+		Content:   "What is the value of g (acceleration due to gravity) on Earth?",
+		Options:   []string{"9.8 m/s²", "8.9 m/s²", "10.2 m/s²", "7.8 m/s²"},
+		Timestamp: time.Now(),
+	},
+	{
+		ID:        uuid.New().String(),
+		Content:   "Which of these is a noble gas?",
+		Options:   []string{"Helium", "Oxygen", "Nitrogen", "Carbon"},
+		Timestamp: time.Now(),
+	},
+	{
+		ID:        uuid.New().String(),
+		Content:   "What is the derivative of sin(x)?",
+		Options:   []string{"cos(x)", "-sin(x)", "tan(x)", "-cos(x)"},
+		Timestamp: time.Now(),
+	},
+	{
+		ID:        uuid.New().String(),
+		Content:   "What is the first law of thermodynamics?",
+		Options:   []string{"Energy cannot be created or destroyed", "Heat flows from hot to cold", "Entropy always increases", "Work equals force times distance"},
+		Timestamp: time.Now(),
+	},
+	{
+		ID:        uuid.New().String(),
+		Content:   "What is the pH of a neutral solution?",
+		Options:   []string{"7", "0", "14", "1"},
+		Timestamp: time.Now(),
+	},
+}
+
 type MemoryStore struct {
 	users      map[string]*models.User
 	groups     map[string]*models.Group
 	userGroups map[string]*models.UserGroup
+	matches    map[string]*models.UserPair // key: match ID
 }
 
 func NewMemoryStore() *MemoryStore {
@@ -20,6 +55,162 @@ func NewMemoryStore() *MemoryStore {
 		users:      make(map[string]*models.User),
 		groups:     make(map[string]*models.Group),
 		userGroups: make(map[string]*models.UserGroup),
+		matches:    make(map[string]*models.UserPair),
+	}
+
+	// Add dummy questions
+
+
+	// Add dummy users
+	dummyUsers := []struct {
+		email    string
+		subjects []string
+		scores   []int
+	}{
+		{
+			email:    "alice.smith@example.com",
+			subjects: []string{"physics", "chemistry", "maths"},
+			scores:   []int{95, 92, 90},
+		},
+		{
+			email:    "bob.jones@example.com",
+			subjects: []string{"physics", "chemistry", "maths"},
+			scores:   []int{75, 78, 72},
+		},
+		{
+			email:    "carol.wilson@example.com",
+			subjects: []string{"physics", "chemistry", "maths"},
+			scores:   []int{85, 45, 90},
+		},
+		{
+			email:    "david.brown@example.com",
+			subjects: []string{"physics", "chemistry", "maths"},
+			scores:   []int{88, 82, 86},
+		},
+		{
+			email:    "emma.davis@example.com",
+			subjects: []string{"physics", "chemistry", "maths"},
+			scores:   []int{92, 85, 78},
+		},
+	}
+
+	// Map to store users by email for easy lookup when creating matches
+	usersByEmail := make(map[string]*models.User)
+
+	for _, du := range dummyUsers {
+		var scores []models.Score
+		for i, subject := range du.subjects {
+			scores = append(scores, models.Score{
+				Subject: subject,
+				Score:   du.scores[i],
+			})
+		}
+
+		user := &models.User{
+			ID:    uuid.New().String(),
+			Email: du.email,
+			Score: scores,
+		}
+		store.users[user.ID] = user
+		usersByEmail[user.Email] = user
+
+		// Create UserGroup for each user
+		userGroup := &models.UserGroup{
+			ID:                uuid.New().String(),
+			UserID:            user.ID,
+			ActiveGroups:      []string{},
+			RecommendedGroups: []string{},
+		}
+		store.userGroups[user.ID] = userGroup
+	}
+
+	// Add dummy matches with predefined pairs
+	dummyMatches := []struct {
+		email1     string
+		email2     string
+		similarity float64
+		reason     string
+		subject    string // Primary subject for the pair
+	}{
+		{
+			email1:     "alice.smith@example.com",
+			email2:     "emma.davis@example.com",
+			similarity: 0.95,
+			reason:     "Both high performers across all subjects",
+			subject:    "physics",
+		},
+		{
+			email1:     "david.brown@example.com",
+			email2:     "emma.davis@example.com",
+			similarity: 0.90,
+			reason:     "Similar consistent performance pattern",
+			subject:    "chemistry",
+		},
+		{
+			email1:     "alice.smith@example.com",
+			email2:     "david.brown@example.com",
+			similarity: 0.88,
+			reason:     "Both strong in physics and overall consistent",
+			subject:    "physics",
+		},
+		{
+			email1:     "bob.jones@example.com",
+			email2:     "carol.wilson@example.com",
+			similarity: 0.85,
+			reason:     "Complementary strengths in different subjects",
+			subject:    "maths",
+		},
+	}
+
+	// Create the matches and pair study groups
+	for _, dm := range dummyMatches {
+		user1 := usersByEmail[dm.email1]
+		user2 := usersByEmail[dm.email2]
+		if user1 != nil && user2 != nil {
+			// Create match
+			match := &models.UserPair{
+				User1:      *user1,
+				User2:      *user2,
+				Similarity: dm.similarity,
+			}
+			matchID := uuid.New().String()
+			store.matches[matchID] = match
+
+			// Create a private study group for the pair
+			pairGroup := &models.Group{
+				ID:            uuid.New().String(),
+				Title:         fmt.Sprintf("Pair Study: %s", dm.subject),
+				Description:   fmt.Sprintf("Private study group for matched pair (%.0f%% similarity)", dm.similarity*100),
+				Members:       []string{user1.ID, user2.ID},
+				Tag:           dm.subject,
+				Type:          "pair_study",
+				Private:       true,
+				Messages:      []models.Message{},
+				CreateBy:      user1.ID,
+				Capacity:      2,
+				ActivityScore: int(dm.similarity * 100),
+			}
+
+			// Add welcome message
+			welcomeMsg := models.Message{
+				ID:        uuid.New().String(),
+				Content:   fmt.Sprintf("Welcome to your paired study group! You were matched based on: %s", dm.reason),
+				SenderId:  pairGroup.CreateBy,
+				Timestamp: time.Now(),
+			}
+			pairGroup.Messages = append(pairGroup.Messages, welcomeMsg)
+
+			// Add group to store
+			store.groups[pairGroup.ID] = pairGroup
+
+			// Add group to recommended groups for both users
+			if userGroup1, exists := store.userGroups[user1.ID]; exists {
+				userGroup1.RecommendedGroups = append(userGroup1.RecommendedGroups, pairGroup.ID)
+			}
+			if userGroup2, exists := store.userGroups[user2.ID]; exists {
+				userGroup2.RecommendedGroups = append(userGroup2.RecommendedGroups, pairGroup.ID)
+			}
+		}
 	}
 
 	// Add dummy groups
@@ -68,7 +259,158 @@ func NewMemoryStore() *MemoryStore {
 		group.Messages = append(group.Messages, message)
 	}
 
+	// Assign users to groups based on their scores
+	for _, user := range store.users {
+		for _, group := range store.groups {
+			// Add users to groups if they have a good score in the subject
+			var userScore int
+			for _, score := range user.Score {
+				if score.Subject == group.Tag {
+					userScore = score.Score
+					break
+				}
+			}
+			if userScore >= 80 {
+				group.Members = append(group.Members, user.ID)
+				if userGroup, exists := store.userGroups[user.ID]; exists {
+					userGroup.ActiveGroups = append(userGroup.ActiveGroups, group.ID)
+				}
+			}
+		}
+	}
+
+	// Generate matches between users based on similar scores
+	store.generateInitialMatches()
+
 	return store
+}
+
+// generateInitialMatches creates initial matches between users based on score similarity
+func (s *MemoryStore) generateInitialMatches() {
+	users := make([]*models.User, 0, len(s.users))
+	for _, user := range s.users {
+		users = append(users, user)
+	}
+
+	// Compare each user with every other user
+	for i := 0; i < len(users); i++ {
+		for j := i + 1; j < len(users); j++ {
+			similarity := s.calculateSimilarity(users[i], users[j])
+			if similarity >= 0.8 { // Only create matches for users with high similarity
+				match := &models.UserPair{
+					User1:      *users[i],
+					User2:      *users[j],
+					Similarity: similarity,
+				}
+				matchID := uuid.New().String()
+				s.matches[matchID] = match
+			}
+		}
+	}
+}
+
+// calculateSimilarity computes how similar two users are based on their scores
+func (s *MemoryStore) calculateSimilarity(user1, user2 *models.User) float64 {
+	// Create maps of subject to score for easier comparison
+	scores1 := make(map[string]int)
+	scores2 := make(map[string]int)
+
+	for _, score := range user1.Score {
+		scores1[score.Subject] = score.Score
+	}
+	for _, score := range user2.Score {
+		scores2[score.Subject] = score.Score
+	}
+
+	// Check if they have the same subjects
+	if len(scores1) != len(scores2) {
+		return 0
+	}
+
+	// Calculate similarity using normalized score differences
+	var totalDiff float64
+	var maxPossibleDiff float64
+	for subject, score1 := range scores1 {
+		if score2, exists := scores2[subject]; exists {
+			diff := float64(abs(score1 - score2))
+			totalDiff += diff
+			maxPossibleDiff += 100 // Maximum possible difference in scores
+		} else {
+			return 0 // Different subjects
+		}
+	}
+
+	// Convert to similarity score (1 is most similar, 0 is least similar)
+	if maxPossibleDiff == 0 {
+		return 0
+	}
+	return 1 - (totalDiff / maxPossibleDiff)
+}
+
+// abs returns the absolute value of an integer
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+// GetMatches returns all matches for a specific user
+func (s *MemoryStore) GetMatches(userID string) []*models.UserPair {
+	var userMatches []*models.UserPair
+	for _, match := range s.matches {
+		if match.User1.ID == userID || match.User2.ID == userID {
+			userMatches = append(userMatches, match)
+		}
+	}
+
+	// Sort matches by similarity score (highest first)
+	sort.Slice(userMatches, func(i, j int) bool {
+		return userMatches[i].Similarity > userMatches[j].Similarity
+	})
+
+	return userMatches
+}
+
+// GetAllMatches returns all matches in the system
+func (s *MemoryStore) GetAllMatches() []*models.UserPair {
+	matches := make([]*models.UserPair, 0, len(s.matches))
+	for _, match := range s.matches {
+		matches = append(matches, match)
+	}
+
+	// Sort by similarity score
+	sort.Slice(matches, func(i, j int) bool {
+		return matches[i].Similarity > matches[j].Similarity
+	})
+
+	return matches
+}
+
+// CreateMatch creates a new match between two users
+func (s *MemoryStore) CreateMatch(user1ID, user2ID string) (*models.UserPair, error) {
+	user1, exists1 := s.users[user1ID]
+	user2, exists2 := s.users[user2ID]
+	if !exists1 || !exists2 {
+		return nil, nil
+	}
+
+	similarity := s.calculateSimilarity(user1, user2)
+	match := &models.UserPair{
+		User1:      *user1,
+		User2:      *user2,
+		Similarity: similarity,
+	}
+
+	matchID := uuid.New().String()
+	s.matches[matchID] = match
+	return match, nil
+}
+
+// DeleteMatch removes a match from the system
+func (s *MemoryStore) DeleteMatch(matchID string) error {
+	delete(s.matches, matchID)
+	return nil
 }
 
 // User operations
@@ -97,6 +439,7 @@ func (s *MemoryStore) DeleteUser(id string) error {
 // Group operations
 func (s *MemoryStore) GetGroup(id string) (*models.Group, error) {
 	if group, exists := s.groups[id]; exists {
+		group.Questions = questions
 		return group, nil
 	}
 	return nil, nil
@@ -226,7 +569,7 @@ func (s *MemoryStore) AddActionToGroup(groupID string, action *models.Action) er
 func (s *MemoryStore) SearchGroupsByTag(tag string) []*models.Group {
 	var matchingGroups []*models.Group
 	for _, group := range s.groups {
-		if group != nil && group.Tag == tag {
+		if group != nil && group.Tag == tag && group.Private == false {
 			matchingGroups = append(matchingGroups, group)
 		}
 	}
