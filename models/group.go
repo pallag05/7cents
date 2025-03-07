@@ -15,6 +15,14 @@ type Group struct {
 	CreateBy      string    `json:"createBy"`
 	Capacity      int       `json:"capacity"`
 	ActivityScore int       `json:"activityScore"`
+	Questions     []Question `json:"questions"`
+}
+
+type Question struct {
+	ID        string    `json:"id"`
+	Content   string    `json:"content"`
+	Options   []string  `json:"options"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 type Message struct {

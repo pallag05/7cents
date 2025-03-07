@@ -10,6 +10,39 @@ import (
 	"github.com/google/uuid"
 )
 
+var questions = []models.Question{
+	{
+		ID:        uuid.New().String(),
+		Content:   "What is the value of g (acceleration due to gravity) on Earth?",
+		Options:   []string{"9.8 m/s²", "8.9 m/s²", "10.2 m/s²", "7.8 m/s²"},
+		Timestamp: time.Now(),
+	},
+	{
+		ID:        uuid.New().String(),
+		Content:   "Which of these is a noble gas?",
+		Options:   []string{"Helium", "Oxygen", "Nitrogen", "Carbon"},
+		Timestamp: time.Now(),
+	},
+	{
+		ID:        uuid.New().String(),
+		Content:   "What is the derivative of sin(x)?",
+		Options:   []string{"cos(x)", "-sin(x)", "tan(x)", "-cos(x)"},
+		Timestamp: time.Now(),
+	},
+	{
+		ID:        uuid.New().String(),
+		Content:   "What is the first law of thermodynamics?",
+		Options:   []string{"Energy cannot be created or destroyed", "Heat flows from hot to cold", "Entropy always increases", "Work equals force times distance"},
+		Timestamp: time.Now(),
+	},
+	{
+		ID:        uuid.New().String(),
+		Content:   "What is the pH of a neutral solution?",
+		Options:   []string{"7", "0", "14", "1"},
+		Timestamp: time.Now(),
+	},
+}
+
 type MemoryStore struct {
 	users      map[string]*models.User
 	groups     map[string]*models.Group
@@ -24,6 +57,9 @@ func NewMemoryStore() *MemoryStore {
 		userGroups: make(map[string]*models.UserGroup),
 		matches:    make(map[string]*models.UserPair),
 	}
+
+	// Add dummy questions
+
 
 	// Add dummy users
 	dummyUsers := []struct {
@@ -403,6 +439,7 @@ func (s *MemoryStore) DeleteUser(id string) error {
 // Group operations
 func (s *MemoryStore) GetGroup(id string) (*models.Group, error) {
 	if group, exists := s.groups[id]; exists {
+		group.Questions = questions
 		return group, nil
 	}
 	return nil, nil
