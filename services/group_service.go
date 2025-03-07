@@ -33,6 +33,8 @@ func (s *GroupService) CreateGroup(group *models.Group) error {
 	})
 	group.ActivityScore = 0
 
+	group.Members = append(group.Members, group.CreateBy)
+
 	// Store the group
 	if err := s.store.CreateGroup(group); err != nil {
 		return err
