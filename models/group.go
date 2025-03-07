@@ -18,6 +18,7 @@ type Group struct {
 	MeetingStarted       bool       `json:"meetingStarted"`
 	Questions            []Question `json:"questions"`
 	RecommendationReason string     `json:"recommendationReason"`
+	RecommendationTag    string     `json:"recommendationScore"`
 }
 
 type Question struct {

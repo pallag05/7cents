@@ -69,11 +69,17 @@ func (s *GroupService) GetGroupsPage(userID string) (*models.GroupsPageResponse,
 		return nil, err
 	}
 
+	user, err := s.store.GetUser(userID)
+	if err != nil {
+		return nil, err
+	}
+
 	// If user has no group data yet, return empty response
 	if userGroup == nil {
 		return &models.GroupsPageResponse{
 			SystemRecommendedGroups: []models.Group{},
 			UserActiveGroups:        []models.Group{},
+			User:                    *user,
 		}, nil
 	}
 

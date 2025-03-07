@@ -10,4 +10,5 @@ type UserGroup struct {
 type GroupsPageResponse struct {
 	SystemRecommendedGroups []Group `json:"system_recommended_groups"`
 	UserActiveGroups        []Group `json:"user_active_groups"`
+	User                    User    `json:"user"`
 }

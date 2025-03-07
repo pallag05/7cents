@@ -67,36 +67,42 @@ func NewMemoryStore() *MemoryStore {
 		subjects []string
 		scores   []int
 		id       string
+		name     string
 	}{
 		{
 			email:    "alice.smith@example.com",
 			subjects: []string{"physics", "chemistry", "maths"},
 			scores:   []int{95, 92, 90},
 			id:       "1",
+			name:     "Alice Smith",
 		},
 		{
 			email:    "bob.jones@example.com",
 			subjects: []string{"physics", "chemistry", "maths"},
 			scores:   []int{75, 78, 72},
 			id:       "2",
+			name:     "Bob Jones",
 		},
 		{
 			email:    "carol.wilson@example.com",
 			subjects: []string{"physics", "chemistry", "maths"},
 			scores:   []int{85, 45, 90},
 			id:       "3",
+			name:     "Carol Wilson",
 		},
 		{
 			email:    "david.brown@example.com",
 			subjects: []string{"physics", "chemistry", "maths"},
 			scores:   []int{88, 82, 86},
 			id:       "4",
+			name:     "David Brown",
 		},
 		{
 			email:    "emma.davis@example.com",
 			subjects: []string{"physics", "chemistry", "maths"},
 			scores:   []int{92, 85, 78},
 			id:       "5",
+			name:     "Emma Davis",
 		},
 	}
 
@@ -116,6 +122,7 @@ func NewMemoryStore() *MemoryStore {
 			ID:    du.id,
 			Email: du.email,
 			Score: scores,
+			Name:  du.name,
 		}
 		store.users[user.ID] = user
 		usersByEmail[user.Email] = user
@@ -136,35 +143,40 @@ func NewMemoryStore() *MemoryStore {
 		email2     string
 		similarity float64
 		reason     string
-		subject    string // Primary subject for the pair
+		subject    string
+		tag        string // Primary subject for the pair
 	}{
 		{
 			email1:     "alice.smith@example.com",
 			email2:     "emma.davis@example.com",
 			similarity: 0.95,
-			reason:     "This group is recommended because both peers are high performers across all subjects",
+			reason:     "Both peers are high performers across all subjects",
 			subject:    "physics",
+			tag:        "High Performers",
 		},
 		{
 			email1:     "david.brown@example.com",
 			email2:     "emma.davis@example.com",
 			similarity: 0.90,
-			reason:     "This group is recommended because both peers show a similar consistent performance pattern",
+			reason:     "Both peers show a similar consistent performance pattern",
 			subject:    "chemistry",
+			tag:        "Consistent Performers",
 		},
 		{
 			email1:     "alice.smith@example.com",
 			email2:     "david.brown@example.com",
 			similarity: 0.88,
-			reason:     "This group is recommended because both peers are strong in physics and are overall consistent",
+			reason:     "Both peers are strong in physics and are overall consistent",
 			subject:    "physics",
+			tag:        "Overall Consistent",
 		},
 		{
 			email1:     "bob.jones@example.com",
 			email2:     "carol.wilson@example.com",
 			similarity: 0.85,
-			reason:     "This group is recommended because both peers have complementary strengths in different subjects",
+			reason:     "Both peers have complementary strengths in different subjects",
 			subject:    "maths",
+			tag:        "Complementary Strengths",
 		},
 	}
 
@@ -185,7 +197,7 @@ func NewMemoryStore() *MemoryStore {
 			// Create a private study group for the pair
 			pairGroup := &models.Group{
 				ID:                   user1.ID + user2.ID + "group",
-				Title:                fmt.Sprintf("Pair Study: %s", dm.subject),
+				Title:                fmt.Sprintf("Connect for %s", dm.subject),
 				Description:          fmt.Sprintf("Private study group for matched pair (%.0f%% similarity)", dm.similarity*100),
 				Tag:                  dm.subject,
 				Type:                 "Pair Study",
@@ -195,7 +207,7 @@ func NewMemoryStore() *MemoryStore {
 				Capacity:             2,
 				ActivityScore:        int(dm.similarity * 100),
 				RecommendationReason: dm.reason,
-				Members:              []string{user1.ID, user2.ID},
+				RecommendationTag:    dm.tag,
 			}
 
 			// Add welcome message
@@ -224,9 +236,9 @@ func NewMemoryStore() *MemoryStore {
 
 	pairGroup1 := &models.Group{
 		ID:          "15" + "group" + "2",
-		Title:       fmt.Sprintf("Topic Weakness: Physics"),
-		Description: fmt.Sprintf("Public study group for topic weakness Physics"),
-		Tag:         "Physics",
+		Title:       fmt.Sprintf("Connect for Thermodynamics"),
+		Description: fmt.Sprintf("Public study group for topic weakness Thermodynamics"),
+		Tag:         "Thermodynamics",
 		Type:        "Topic Weakness",
 		Private:     false,
 		Messages: []models.Message{{
@@ -239,7 +251,7 @@ func NewMemoryStore() *MemoryStore {
 		Capacity:             10,
 		ActivityScore:        85,
 		RecommendationReason: "You were matched based on weak performance in Physics",
-		Members:              []string{"1", "5"},
+		RecommendationTag:    "Weak Performance",
 	}
 
 	store.groups[pairGroup1.ID] = pairGroup1
