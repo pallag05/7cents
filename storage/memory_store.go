@@ -200,7 +200,7 @@ func NewMemoryStore() *MemoryStore {
 			// Add welcome message
 			welcomeMsg := models.Message{
 				ID:        uuid.New().String(),
-				Content:   fmt.Sprintf("Welcome to your paired study group! You were matched based on: %s", dm.reason),
+				Content:   fmt.Sprintf("Welcome to your paired study group! %s", dm.reason),
 				SenderId:  pairGroup.CreateBy,
 				Timestamp: time.Now(),
 			}
