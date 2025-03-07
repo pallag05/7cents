@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"time"
 
 	"allen_hackathon/models"
@@ -222,7 +223,7 @@ func NewMemoryStore() *MemoryStore {
 	subjects := []string{"physics", "chemistry", "maths"}
 	for i, subject := range subjects {
 		group := &models.Group{
-			ID:            "3" + "group",
+			ID:            "3" + strconv.Itoa(i) + "group",
 			Title:         subject + " Study Group",
 			Description:   "A group for studying " + subject,
 			Members:       []string{},
@@ -239,7 +240,7 @@ func NewMemoryStore() *MemoryStore {
 
 	// Add one more physics group with different activity score
 	physicsGroup2 := &models.Group{
-		ID:            "4" + "group",
+		ID:            "41" + "group",
 		Title:         "Advanced Physics Group",
 		Description:   "Advanced physics study group",
 		Members:       []string{},
@@ -265,7 +266,7 @@ func NewMemoryStore() *MemoryStore {
 	}
 
 	// Assign users to groups based on their scores
-	for _, user := range store.users {
+	/*for _, user := range store.users {
 		for _, group := range store.groups {
 			// Add users to groups if they have a good score in the subject
 			var userScore int
@@ -285,7 +286,7 @@ func NewMemoryStore() *MemoryStore {
 	}
 
 	// Generate matches between users based on similar scores
-	store.generateInitialMatches()
+	store.generateInitialMatches()*/
 
 	return store
 }
